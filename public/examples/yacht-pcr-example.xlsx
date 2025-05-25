@@ -2,7 +2,7 @@
 
 Ora creiamo un file CSV di esempio più semplice da testare e miglioriamo il parser Excel:
 
-```typescriptreact file="lib/excel-parser.ts"
+\`\`\`typescriptreact file="lib/excel-parser.ts"
 [v0-no-op-code-block-prefix]// Parser Excel migliorato per gestire file reali
 export class ExcelParser {
   async parseExcelFile(file: File): Promise<string> {

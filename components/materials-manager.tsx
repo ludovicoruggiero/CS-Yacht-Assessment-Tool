@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash2, Search, Download, Upload, Save } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Download, Upload, Save, CheckCircle, AlertCircle, Clock } from "lucide-react"
 import { MaterialsDatabase, type Material } from "@/lib/materials-database"
 
 export default function MaterialsManager() {
@@ -43,10 +43,38 @@ export default function MaterialsManager() {
     description: "",
   })
 
+  // Aggiungi stati per il monitoraggio della persistenza
+  const [storageStatus, setStorageStatus] = useState<"healthy" | "warning" | "error">("healthy")
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveInProgress, setSaveInProgress] = useState(false)
+
   useEffect(() => {
     const allMaterials = materialsDb.getAllMaterials()
     setMaterials(allMaterials)
     setFilteredMaterials(allMaterials)
+  }, [materialsDb])
+
+  // Aggiungi monitoraggio dello storage
+  useEffect(() => {
+    const checkStorageHealth = () => {
+      try {
+        const testKey = "storage-health-test"
+        localStorage.setItem(testKey, "test")
+        localStorage.removeItem(testKey)
+
+        // Verifica l'integrità dei dati
+        const isHealthy = materialsDb.verifyDataIntegrity()
+        setStorageStatus(isHealthy ? "healthy" : "warning")
+      } catch (error) {
+        console.error("Storage health check failed:", error)
+        setStorageStatus("error")
+      }
+    }
+
+    checkStorageHealth()
+    const interval = setInterval(checkStorageHealth, 30000) // Controlla ogni 30 secondi
+
+    return () => clearInterval(interval)
   }, [materialsDb])
 
   useEffect(() => {
@@ -77,6 +105,7 @@ export default function MaterialsManager() {
     }
 
     try {
+      setSaveInProgress(true)
       const material: Material = {
         id: `custom_${Date.now()}`,
         name: newMaterial.name!,
@@ -89,7 +118,20 @@ export default function MaterialsManager() {
       }
 
       materialsDb.addMaterial(material)
-      setMaterials(materialsDb.getAllMaterials())
+
+      // Verifica che il salvataggio sia andato a buon fine
+      const updatedMaterials = materialsDb.getAllMaterials()
+      const materialExists = updatedMaterials.find((m) => m.id === material.id)
+
+      if (!materialExists) {
+        throw new Error("Material was not saved successfully")
+      }
+
+      setMaterials(updatedMaterials)
+      setLastSaved(new Date())
+      setStorageStatus("healthy")
+      setSaveInProgress(false)
+
       setNewMaterial({
         name: "",
         aliases: [],
@@ -100,9 +142,11 @@ export default function MaterialsManager() {
         description: "",
       })
       setIsAddDialogOpen(false)
-      alert("Material added successfully")
+      alert("Material added and saved successfully")
     } catch (error) {
-      alert("Error adding material")
+      setSaveInProgress(false)
+      setStorageStatus("error")
+      alert("Error adding material: " + (error as Error).message)
       console.error("Add error:", error)
     }
   }
@@ -111,49 +155,102 @@ export default function MaterialsManager() {
     if (!editingMaterial) return
 
     try {
+      setSaveInProgress(true)
       const success = materialsDb.updateMaterial(editingMaterial.id, editingMaterial)
+
       if (success) {
-        setMaterials(materialsDb.getAllMaterials())
+        // Verifica che l'aggiornamento sia stato salvato
+        const updatedMaterials = materialsDb.getAllMaterials()
+        const updatedMaterial = updatedMaterials.find((m) => m.id === editingMaterial.id)
+
+        if (!updatedMaterial || updatedMaterial.name !== editingMaterial.name) {
+          throw new Error("Material update was not saved correctly")
+        }
+
+        setMaterials(updatedMaterials)
+        setLastSaved(new Date())
+        setStorageStatus("healthy")
+        setSaveInProgress(false)
         setEditingMaterial(null)
         setIsEditDialogOpen(false)
-        alert("Material updated successfully")
+        alert("Material updated and saved successfully")
       } else {
-        alert("Error updating material")
+        throw new Error("Material not found")
       }
     } catch (error) {
-      alert("Error updating material")
+      setSaveInProgress(false)
+      setStorageStatus("error")
+      alert("Error updating material: " + (error as Error).message)
       console.error("Update error:", error)
     }
   }
+
   const handleDeleteAllMaterials = () => {
     if (confirm("Are you sure you want to delete ALL materials? This action cannot be undone.")) {
-      materialsDb.clearAllMaterials()
-      setMaterials([])
-      setFilteredMaterials([])
-      alert("All materials have been deleted")
+      try {
+        setSaveInProgress(true)
+        materialsDb.clearAllMaterials()
+        setMaterials([])
+        setFilteredMaterials([])
+        setLastSaved(new Date())
+        setStorageStatus("healthy")
+        setSaveInProgress(false)
+        alert("All materials have been deleted and changes saved")
+      } catch (error) {
+        setSaveInProgress(false)
+        setStorageStatus("error")
+        alert("Error deleting materials: " + (error as Error).message)
+        console.error("Delete all error:", error)
+      }
     }
   }
 
   const handleResetToDefaults = () => {
     if (confirm("Reset to default materials? This will replace all current materials with the original database.")) {
-      materialsDb.resetToDefaults()
-      setMaterials(materialsDb.getAllMaterials())
-      alert("Database reset to defaults")
+      try {
+        setSaveInProgress(true)
+        materialsDb.resetToDefaults()
+        setMaterials(materialsDb.getAllMaterials())
+        setLastSaved(new Date())
+        setStorageStatus("healthy")
+        setSaveInProgress(false)
+        alert("Database reset to defaults and saved")
+      } catch (error) {
+        setSaveInProgress(false)
+        setStorageStatus("error")
+        alert("Error resetting database: " + (error as Error).message)
+        console.error("Reset error:", error)
+      }
     }
   }
 
   const handleDeleteMaterial = (id: string) => {
     if (confirm("Are you sure you want to delete this material?")) {
       try {
+        setSaveInProgress(true)
         const success = materialsDb.removeMaterial(id)
+
         if (success) {
-          setMaterials(materialsDb.getAllMaterials())
-          alert("Material deleted successfully")
+          // Verifica che la cancellazione sia stata salvata
+          const updatedMaterials = materialsDb.getAllMaterials()
+          const materialStillExists = updatedMaterials.find((m) => m.id === id)
+
+          if (materialStillExists) {
+            throw new Error("Material deletion was not saved correctly")
+          }
+
+          setMaterials(updatedMaterials)
+          setLastSaved(new Date())
+          setStorageStatus("healthy")
+          setSaveInProgress(false)
+          alert("Material deleted and changes saved successfully")
         } else {
-          alert("Error deleting material")
+          throw new Error("Material not found")
         }
       } catch (error) {
-        alert("Error deleting material")
+        setSaveInProgress(false)
+        setStorageStatus("error")
+        alert("Error deleting material: " + (error as Error).message)
         console.error("Delete error:", error)
       }
     }
@@ -187,6 +284,7 @@ export default function MaterialsManager() {
 
         const successCount = materialsDb.importMaterials(importedMaterials)
         setMaterials(materialsDb.getAllMaterials())
+        setLastSaved(new Date())
         alert(`Successfully imported ${successCount} materials`)
 
         // Reset file input
@@ -219,13 +317,43 @@ export default function MaterialsManager() {
               <CardDescription>
                 Add, edit or delete materials from the database to improve automatic recognition
               </CardDescription>
+              {/* Aggiungi indicatore di stato storage */}
+              <div className="flex items-center gap-2 mt-2">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    storageStatus === "healthy"
+                      ? "bg-green-500"
+                      : storageStatus === "warning"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                />
+                <span className="text-xs text-gray-600 flex items-center gap-1">
+                  {storageStatus === "healthy" && <CheckCircle className="h-3 w-3" />}
+                  {storageStatus === "warning" && <AlertCircle className="h-3 w-3" />}
+                  {storageStatus === "error" && <AlertCircle className="h-3 w-3" />}
+                  Storage: {storageStatus}
+                  {lastSaved && ` • Last saved: ${lastSaved.toLocaleTimeString()}`}
+                  {saveInProgress && (
+                    <>
+                      <Clock className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="destructive" onClick={handleDeleteAllMaterials} className="mr-2">
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAllMaterials}
+                className="mr-2"
+                disabled={saveInProgress}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete All
               </Button>
-              <Button variant="outline" onClick={handleResetToDefaults} className="mr-2">
+              <Button variant="outline" onClick={handleResetToDefaults} className="mr-2" disabled={saveInProgress}>
                 Reset to Defaults
               </Button>
               <Button variant="outline" onClick={exportDatabase}>
@@ -243,7 +371,7 @@ export default function MaterialsManager() {
               <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button disabled={saveInProgress}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Material
                   </Button>
@@ -350,7 +478,7 @@ export default function MaterialsManager() {
                     <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleAddMaterial}>
+                    <Button onClick={handleAddMaterial} disabled={saveInProgress}>
                       <Save className="h-4 w-4 mr-2" />
                       Save Material
                     </Button>
@@ -439,6 +567,7 @@ export default function MaterialsManager() {
                                 setEditingMaterial({ ...material })
                                 setIsEditDialogOpen(true)
                               }}
+                              disabled={saveInProgress}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -447,6 +576,7 @@ export default function MaterialsManager() {
                               size="sm"
                               onClick={() => handleDeleteMaterial(material.id)}
                               className="text-red-600 hover:text-red-700"
+                              disabled={saveInProgress}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -626,7 +756,7 @@ export default function MaterialsManager() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEditMaterial}>
+            <Button onClick={handleEditMaterial} disabled={saveInProgress}>
               <Save className="h-4 w-4 mr-2" />
               Save Changes
             </Button>
