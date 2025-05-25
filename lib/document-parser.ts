@@ -1,4 +1,4 @@
-import { MaterialsDatabase, type Material } from "./materials-database"
+import { MaterialsDatabase, type Material } from "./materials-database-supabase"
 import { PCRCategorizer, type PCRCategory } from "./pcr-categories"
 import { ExcelParser } from "./excel-parser"
 
@@ -76,7 +76,7 @@ export class DocumentParser {
     }
   }
 
-  private parseTextInternal(text: string, fileName: string): ParsedDocument {
+  private async parseTextInternal(text: string, fileName: string): Promise<ParsedDocument> {
     const lines = text.split("\n")
     const materials: ParsedMaterial[] = []
     let totalWeight = 0
@@ -97,9 +97,10 @@ export class DocumentParser {
       /^(.+?):\s*([0-9]+(?:[,.][0-9]+)?)\s*(t|kg|tonnes?|tons?)\s*$/i,
     ]
 
-    lines.forEach((line, index) => {
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index]
       const trimmedLine = line.trim()
-      if (!trimmedLine || trimmedLine.length < 3) return
+      if (!trimmedLine || trimmedLine.length < 3) continue
 
       // Controlla se è un codice PCR formato standard cantieri
       const pcrMatch = trimmedLine.match(pcrCodePattern)
@@ -122,7 +123,7 @@ export class DocumentParser {
         if (categoryId) {
           currentCategory = this.pcrCategorizer.getCategoryById(categoryId)
         }
-        return
+        continue
       }
 
       // NUOVO: Controlla se è un nome completo di macrogruppo PCR
@@ -146,11 +147,11 @@ export class DocumentParser {
           currentCategory = this.pcrCategorizer.getCategoryById(categoryId)
           console.log(`Riconosciuto macrogruppo: ${categoryName} -> ${currentCategory?.code}`)
         }
-        return
+        continue
       }
 
       // Salta header
-      if (this.isHeaderLine(trimmedLine)) return
+      if (this.isHeaderLine(trimmedLine)) continue
 
       // Prova a fare il match con i pattern dei materiali
       for (const pattern of materialPatterns) {
@@ -166,8 +167,8 @@ export class DocumentParser {
           const normalizedUnit = this.normalizeUnit(unit)
           const quantityInKg = this.convertToKg(quantity, normalizedUnit)
 
-          // Cerca il materiale nel database
-          const material = this.materialsDb.findMaterial(materialName)
+          // Cerca il materiale nel database (ora asincrono)
+          const material = await this.materialsDb.findMaterial(materialName)
 
           const parsedMaterial: ParsedMaterial = {
             originalText: trimmedLine,
@@ -186,7 +187,7 @@ export class DocumentParser {
           break
         }
       }
-    })
+    }
 
     // Crea il breakdown per categoria
     const categoryBreakdown: { [categoryId: string]: any } = {}
