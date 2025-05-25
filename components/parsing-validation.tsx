@@ -33,7 +33,7 @@ import {
 } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { ParsedDocument, ParsedMaterial } from "@/lib/document-parser"
-import { MaterialsDatabase, type Material } from "@/lib/materials-database"
+import { MaterialsDatabase, type Material } from "@/lib/materials-database-supabase"
 import { PCRCategorizer, type PCRCategory } from "@/lib/pcr-categories"
 
 interface ValidationMaterial extends ParsedMaterial {
@@ -65,35 +65,61 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
     description: "",
   })
 
+  const [availableMaterials, setAvailableMaterials] = useState<Material[]>([])
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
+
+  const loadAvailableMaterials = async () => {
+    setIsLoadingMaterials(true)
+    try {
+      const materials = await materialsDb.getAllMaterials()
+      setAvailableMaterials(materials)
+    } catch (error) {
+      console.error("Errore nel caricamento materiali:", error)
+    } finally {
+      setIsLoadingMaterials(false)
+    }
+  }
+
   useEffect(() => {
-    const allMaterials: ValidationMaterial[] = []
+    loadAvailableMaterials()
+  }, [materialsDb])
 
-    parsedDocuments.forEach((doc) => {
-      doc.materials.forEach((material) => {
-        const validationMaterial: ValidationMaterial = {
-          ...material,
-          isValidated: material.material !== null && material.confidence > 0.8,
-          userModified: false,
-          suggestedMaterials: material.material === null ? getSuggestedMaterials(material.originalText) : [],
+  useEffect(() => {
+    const initializeValidationMaterials = async () => {
+      const allMaterials: ValidationMaterial[] = []
+
+      for (const doc of parsedDocuments) {
+        for (const material of doc.materials) {
+          const suggestedMaterials =
+            material.material === null ? await getSuggestedMaterials(material.originalText) : []
+
+          const validationMaterial: ValidationMaterial = {
+            ...material,
+            isValidated: material.material !== null && material.confidence > 0.8,
+            userModified: false,
+            suggestedMaterials,
+          }
+          allMaterials.push(validationMaterial)
         }
-        allMaterials.push(validationMaterial)
-      })
-    })
-
-    setValidationMaterials(allMaterials)
-
-    // Espandi tutte le categorie di default
-    const categories = new Set<string>()
-    allMaterials.forEach((material) => {
-      if (material.pcrCategory) {
-        categories.add(material.pcrCategory.id)
       }
-    })
-    setExpandedCategories(categories)
+
+      setValidationMaterials(allMaterials)
+
+      // Espandi tutte le categorie di default
+      const categories = new Set<string>()
+      allMaterials.forEach((material) => {
+        if (material.pcrCategory) {
+          categories.add(material.pcrCategory.id)
+        }
+      })
+      setExpandedCategories(categories)
+    }
+
+    initializeValidationMaterials()
   }, [parsedDocuments])
 
-  const getSuggestedMaterials = (searchText: string): Material[] => {
-    const allMaterials = materialsDb.getAllMaterials()
+  const getSuggestedMaterials = async (searchText: string): Promise<Material[]> => {
+    const allMaterials = await materialsDb.getAllMaterials()
     const searchLower = searchText.toLowerCase()
 
     return allMaterials
@@ -521,23 +547,30 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
                                           <div>
                                             <Label>Materiali disponibili:</Label>
                                             <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-                                              {materialsDb.getAllMaterials().map((dbMaterial) => (
-                                                <Button
-                                                  key={dbMaterial.id}
-                                                  variant="ghost"
-                                                  className="w-full justify-start text-left h-auto p-2"
-                                                  onClick={() => {
-                                                    handleMaterialSelection(globalIndex, dbMaterial)
-                                                  }}
-                                                >
-                                                  <div>
-                                                    <div className="font-medium">{dbMaterial.name}</div>
-                                                    <div className="text-xs text-gray-500">
-                                                      {dbMaterial.category} - {dbMaterial.gwpFactor} kg CO₂eq/kg
+                                              {isLoadingMaterials ? (
+                                                <div className="flex items-center justify-center p-4">
+                                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                                  <span className="ml-2">Caricamento materiali...</span>
+                                                </div>
+                                              ) : (
+                                                availableMaterials.map((dbMaterial) => (
+                                                  <Button
+                                                    key={dbMaterial.id}
+                                                    variant="ghost"
+                                                    className="w-full justify-start text-left h-auto p-2"
+                                                    onClick={() => {
+                                                      handleMaterialSelection(globalIndex, dbMaterial)
+                                                    }}
+                                                  >
+                                                    <div>
+                                                      <div className="font-medium">{dbMaterial.name}</div>
+                                                      <div className="text-xs text-gray-500">
+                                                        {dbMaterial.category} - {dbMaterial.gwpFactor} kg CO₂eq/kg
+                                                      </div>
                                                     </div>
-                                                  </div>
-                                                </Button>
-                                              ))}
+                                                  </Button>
+                                                ))
+                                              )}
                                             </div>
                                           </div>
 
