@@ -67,6 +67,7 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
 
   const [availableMaterials, setAvailableMaterials] = useState<Material[]>([])
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
+  const [selectedMaterialCategory, setSelectedMaterialCategory] = useState<string>("all")
 
   const loadAvailableMaterials = async () => {
     setIsLoadingMaterials(true)
@@ -536,6 +537,7 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
                                             Modifica il materiale e il macrogruppo PCR
                                           </DialogDescription>
                                         </DialogHeader>
+
                                         <div className="space-y-4">
                                           <div>
                                             <Label>Testo originale:</Label>
@@ -544,36 +546,148 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
                                             </p>
                                           </div>
 
+                                          {/* Sezione di ricerca materiali */}
                                           <div>
-                                            <Label>Materiali disponibili:</Label>
-                                            <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-                                              {isLoadingMaterials ? (
-                                                <div className="flex items-center justify-center p-4">
-                                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                                                  <span className="ml-2">Caricamento materiali...</span>
-                                                </div>
-                                              ) : (
-                                                availableMaterials.map((dbMaterial) => (
-                                                  <Button
-                                                    key={dbMaterial.id}
-                                                    variant="ghost"
-                                                    className="w-full justify-start text-left h-auto p-2"
-                                                    onClick={() => {
-                                                      handleMaterialSelection(globalIndex, dbMaterial)
-                                                    }}
-                                                  >
-                                                    <div>
-                                                      <div className="font-medium">{dbMaterial.name}</div>
-                                                      <div className="text-xs text-gray-500">
-                                                        {dbMaterial.category} - {dbMaterial.gwpFactor} kg CO₂eq/kg
+                                            <Label>Cerca e seleziona materiale:</Label>
+                                            <div className="space-y-3">
+                                              {/* Campo di ricerca */}
+                                              <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                                <Input
+                                                  placeholder="Cerca materiale per nome..."
+                                                  value={searchTerm}
+                                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                                  className="pl-10"
+                                                />
+                                              </div>
+
+                                              {/* Filtro per categoria */}
+                                              <Select
+                                                value={selectedMaterialCategory}
+                                                onValueChange={setSelectedMaterialCategory}
+                                              >
+                                                <SelectTrigger className="w-full">
+                                                  <SelectValue placeholder="Filtra per categoria" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="all">Tutte le categorie</SelectItem>
+                                                  {Array.from(new Set(availableMaterials.map((m) => m.category))).map(
+                                                    (category) => (
+                                                      <SelectItem key={category} value={category}>
+                                                        {category}
+                                                      </SelectItem>
+                                                    ),
+                                                  )}
+                                                </SelectContent>
+                                              </Select>
+
+                                              {/* Lista materiali filtrati */}
+                                              <div className="border rounded-lg max-h-60 overflow-y-auto">
+                                                {isLoadingMaterials ? (
+                                                  <div className="flex items-center justify-center p-6">
+                                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                                    <span className="ml-2">Caricamento materiali...</span>
+                                                  </div>
+                                                ) : (
+                                                  <div className="p-2 space-y-1">
+                                                    {availableMaterials
+                                                      .filter((dbMaterial) => {
+                                                        const matchesCategory =
+                                                          selectedMaterialCategory === "all" ||
+                                                          dbMaterial.category === selectedMaterialCategory
+                                                        const matchesSearch =
+                                                          !searchTerm ||
+                                                          dbMaterial.name
+                                                            .toLowerCase()
+                                                            .includes(searchTerm.toLowerCase()) ||
+                                                          dbMaterial.aliases.some((alias) =>
+                                                            alias.toLowerCase().includes(searchTerm.toLowerCase()),
+                                                          )
+                                                        return matchesCategory && matchesSearch
+                                                      })
+                                                      .map((dbMaterial) => (
+                                                        <div
+                                                          key={dbMaterial.id}
+                                                          className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-blue-50 ${
+                                                            material.material?.id === dbMaterial.id
+                                                              ? "bg-blue-100 border-blue-300"
+                                                              : "bg-white border-gray-200"
+                                                          }`}
+                                                          onClick={() =>
+                                                            handleMaterialSelection(globalIndex, dbMaterial)
+                                                          }
+                                                        >
+                                                          <div className="flex items-center justify-between">
+                                                            <div>
+                                                              <div className="font-medium text-sm">
+                                                                {dbMaterial.name}
+                                                              </div>
+                                                              <div className="text-xs text-gray-500">
+                                                                {dbMaterial.category} • {dbMaterial.gwpFactor} kg
+                                                                CO₂eq/kg
+                                                              </div>
+                                                              {dbMaterial.aliases.length > 0 && (
+                                                                <div className="text-xs text-gray-400 mt-1">
+                                                                  Alias: {dbMaterial.aliases.slice(0, 3).join(", ")}
+                                                                  {dbMaterial.aliases.length > 3 && "..."}
+                                                                </div>
+                                                              )}
+                                                            </div>
+                                                            {material.material?.id === dbMaterial.id && (
+                                                              <Check className="h-5 w-5 text-blue-600" />
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                      ))}
+
+                                                    {availableMaterials.filter((dbMaterial) => {
+                                                      const matchesCategory =
+                                                        selectedMaterialCategory === "all" ||
+                                                        dbMaterial.category === selectedMaterialCategory
+                                                      const matchesSearch =
+                                                        !searchTerm ||
+                                                        dbMaterial.name
+                                                          .toLowerCase()
+                                                          .includes(searchTerm.toLowerCase()) ||
+                                                        dbMaterial.aliases.some((alias) =>
+                                                          alias.toLowerCase().includes(searchTerm.toLowerCase()),
+                                                        )
+                                                      return matchesCategory && matchesSearch
+                                                    }).length === 0 && (
+                                                      <div className="text-center p-6 text-gray-500">
+                                                        <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                                        <p>Nessun materiale trovato</p>
+                                                        <p className="text-xs">
+                                                          Prova a modificare i filtri o crea un nuovo materiale
+                                                        </p>
                                                       </div>
-                                                    </div>
-                                                  </Button>
-                                                ))
-                                              )}
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
 
+                                          {/* Sezione materiale selezionato */}
+                                          {material.material && (
+                                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <Check className="h-4 w-4 text-green-600" />
+                                                <span className="font-medium text-green-800">
+                                                  Materiale selezionato:
+                                                </span>
+                                              </div>
+                                              <div className="text-sm">
+                                                <p className="font-medium">{material.material.name}</p>
+                                                <p className="text-gray-600">
+                                                  {material.material.category} • {material.material.gwpFactor} kg
+                                                  CO₂eq/kg
+                                                </p>
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Pulsante per creare nuovo materiale */}
                                           <div className="border-t pt-4">
                                             <Button
                                               variant="outline"
@@ -584,10 +698,32 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
                                               className="w-full"
                                             >
                                               <Plus className="h-4 w-4 mr-2" />
-                                              Aggiungi Nuovo Materiale
+                                              Non trovi il materiale? Creane uno nuovo
                                             </Button>
                                           </div>
                                         </div>
+
+                                        {/* Footer con pulsanti */}
+                                        <DialogFooter className="flex gap-2">
+                                          <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                              // Reset della selezione se necessario
+                                            }}
+                                          >
+                                            Annulla
+                                          </Button>
+                                          <Button
+                                            onClick={() => {
+                                              // Il materiale è già stato selezionato tramite handleMaterialSelection
+                                              // Chiudi semplicemente il dialog
+                                            }}
+                                            disabled={!material.material}
+                                          >
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Salva e Chiudi
+                                          </Button>
+                                        </DialogFooter>
                                       </DialogContent>
                                     </Dialog>
 
