@@ -6,70 +6,68 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Calculator, TrendingUp, CheckCircle, Info } from "lucide-react"
+import { GWPCalculator as GWPCalc, type GWPCalculation } from "@/lib/gwp-calculator"
+import type { ParsedDocument } from "@/lib/document-parser"
 
 interface GWPCalculatorProps {
-  processedData: any
-  onGWPCalculated: (results: any) => void
+  processedData: ParsedDocument[]
+  onGWPCalculated: (results: GWPCalculation) => void
 }
 
 export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCalculatorProps) {
   const [isCalculating, setIsCalculating] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [gwpResults, setGWPResults] = useState<any>(null)
+  const [gwpResults, setGWPResults] = useState<GWPCalculation | null>(null)
   const [calculationSteps, setCalculationSteps] = useState<string[]>([])
 
   const calculateGWP = async () => {
+    if (!processedData || processedData.length === 0) {
+      console.error("No processed data available")
+      return
+    }
+
     setIsCalculating(true)
     setProgress(0)
     setCalculationSteps([])
 
     const steps = [
-      "Caricamento database fattori GWP...",
-      "Calcolo emissioni per materiale...",
-      "Applicazione fattori di trasporto...",
-      "Calcolo emissioni di produzione...",
-      "Aggregazione risultati totali...",
-      "Generazione report finale...",
+      "Loading GWP factors database...",
+      "Calculating emissions per material...",
+      "Applying transport factors...",
+      "Calculating production emissions...",
+      "Aggregating total results...",
+      "Generating final report...",
     ]
 
-    for (let i = 0; i < steps.length; i++) {
-      setCalculationSteps((prev) => [...prev, steps[i]])
-      setProgress(((i + 1) / steps.length) * 100)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    const calculator = new GWPCalc()
+
+    try {
+      for (let i = 0; i < steps.length; i++) {
+        setCalculationSteps((prev) => [...prev, steps[i]])
+        setProgress(((i + 1) / steps.length) * 100)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+
+      // Combine all documents into one for calculation
+      const combinedDocument: ParsedDocument = {
+        fileName: "Combined Analysis",
+        materials: processedData.flatMap((doc) => doc.materials),
+        totalWeight: processedData.reduce((sum, doc) => sum + doc.totalWeight, 0),
+        categoryBreakdown: {},
+        metadata: {
+          ...processedData[0]?.metadata,
+          cantiere: processedData.map((doc) => doc.metadata.cantiere).join(", "),
+          parseDate: new Date(),
+        },
+      }
+
+      const results = calculator.calculateGWP(combinedDocument)
+      setGWPResults(results)
+      setIsCalculating(false)
+    } catch (error) {
+      console.error("Error during GWP calculation:", error)
+      setIsCalculating(false)
     }
-
-    // Calcolo GWP simulato
-    const materialResults = processedData.materials.map((material: any) => ({
-      ...material,
-      gwpTotal: material.quantity * material.gwpFactor,
-      percentage: 0, // Calcolato dopo
-    }))
-
-    const totalGWP = materialResults.reduce((sum: number, material: any) => sum + material.gwpTotal, 0)
-
-    // Calcola percentuali
-    materialResults.forEach((material: any) => {
-      material.percentage = (material.gwpTotal / totalGWP) * 100
-    })
-
-    const results = {
-      totalGWP: totalGWP,
-      gwpPerTonne: totalGWP / processedData.totalWeight,
-      materials: materialResults.sort((a: any, b: any) => b.gwpTotal - a.gwpTotal),
-      breakdown: {
-        production: totalGWP * 0.75,
-        transport: totalGWP * 0.15,
-        processing: totalGWP * 0.1,
-      },
-      benchmarks: {
-        industry_average: 2850,
-        best_practice: 2200,
-        regulatory_limit: 3500,
-      },
-    }
-
-    setGWPResults(results)
-    setIsCalculating(false)
   }
 
   const handleProceed = () => {
@@ -79,11 +77,26 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
   }
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat("it-IT", {
+    return new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(num)
   }
+
+  const getTotalStats = () => {
+    if (!processedData || processedData.length === 0) return null
+
+    const totalMaterials = processedData.reduce((sum, doc) => sum + doc.materials.length, 0)
+    const totalWeight = processedData.reduce((sum, doc) => sum + doc.totalWeight, 0)
+
+    return {
+      totalMaterials,
+      totalWeight: totalWeight / 1000, // Convert to tonnes
+      documentsCount: processedData.length,
+    }
+  }
+
+  const stats = getTotalStats()
 
   return (
     <div className="space-y-6">
@@ -91,11 +104,9 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            Calcolo Global Warming Potential (GWP)
+            Global Warming Potential (GWP) Calculation
           </CardTitle>
-          <CardDescription>
-            Calcolo delle emissioni di CO₂ equivalente basato sui materiali identificati
-          </CardDescription>
+          <CardDescription>Calculate CO₂ equivalent emissions based on identified materials</CardDescription>
         </CardHeader>
         <CardContent>
           {!isCalculating && !gwpResults && (
@@ -103,26 +114,32 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Il calcolo utilizzerà i fattori GWP standard per i materiali identificati. I risultati sono espressi
-                  in tonnellate di CO₂ equivalente.
+                  The calculation will use standard GWP factors for identified materials. Results are expressed in kg of
+                  CO₂ equivalent.
                 </AlertDescription>
               </Alert>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Materiali da Calcolare</h4>
-                  <p className="text-2xl font-bold text-blue-600">{processedData?.materials?.length || 0}</p>
+              {stats && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Documents Analyzed</h4>
+                    <p className="text-2xl font-bold text-blue-600">{stats.documentsCount}</p>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Materials to Calculate</h4>
+                    <p className="text-2xl font-bold text-blue-600">{stats.totalMaterials}</p>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Total Weight</h4>
+                    <p className="text-2xl font-bold text-blue-600">{formatNumber(stats.totalWeight)} t</p>
+                  </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Peso Totale</h4>
-                  <p className="text-2xl font-bold text-blue-600">{processedData?.totalWeight || 0} t</p>
-                </div>
-              </div>
+              )}
 
               <div className="text-center">
                 <Button onClick={calculateGWP} size="lg" className="flex items-center gap-2">
                   <Calculator className="h-4 w-4" />
-                  Avvia Calcolo GWP
+                  Start GWP Calculation
                 </Button>
               </div>
             </div>
@@ -132,7 +149,7 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Progresso calcolo</span>
+                  <span className="text-sm font-medium">Calculation progress</span>
                   <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="h-2" />
@@ -154,8 +171,8 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Calcolo GWP completato! Il Global Warming Potential totale è stato calcolato considerando tutti i
-                  materiali identificati.
+                  GWP calculation completed! The total Global Warming Potential has been calculated considering all
+                  identified materials.
                 </AlertDescription>
               </Alert>
 
@@ -163,16 +180,20 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
                 <Card>
                   <CardContent className="p-4 text-center">
                     <TrendingUp className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">GWP Totale</p>
-                    <p className="text-2xl font-bold text-red-600">{formatNumber(gwpResults.totalGWP)} t CO₂eq</p>
+                    <p className="text-sm text-gray-600">Total GWP</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {formatNumber(gwpResults.totalGWP / 1000)} t CO₂eq
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardContent className="p-4 text-center">
                     <Calculator className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">GWP per Tonnellata</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatNumber(gwpResults.gwpPerTonne)} t CO₂eq/t</p>
+                    <p className="text-sm text-gray-600">GWP per Tonne</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {formatNumber(gwpResults.gwpPerTonne / 1000)} t CO₂eq/t
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -200,10 +221,10 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
                       }`}
                     >
                       {gwpResults.totalGWP < gwpResults.benchmarks.best_practice
-                        ? "Eccellente"
+                        ? "Excellent"
                         : gwpResults.totalGWP < gwpResults.benchmarks.industry_average
-                          ? "Buono"
-                          : "Da Migliorare"}
+                          ? "Good"
+                          : "Needs Improvement"}
                     </p>
                   </CardContent>
                 </Card>
@@ -211,26 +232,28 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Top 5 Materiali per Impatto GWP</CardTitle>
+                  <CardTitle className="text-lg">Top 5 Materials by GWP Impact</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {gwpResults.materials.slice(0, 5).map((material: any, index: number) => (
+                    {gwpResults.results.slice(0, 5).map((result, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium text-sm">{material.name}</span>
-                            <span className="text-sm text-gray-600">{formatNumber(material.gwpTotal)} t CO₂eq</span>
+                            <span className="font-medium text-sm">
+                              {result.material.material?.name || result.material.originalText}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {formatNumber(result.gwpTotal / 1000)} t CO₂eq
+                            </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${material.percentage}%` }}
+                              style={{ width: `${Math.min(100, result.percentage)}%` }}
                             />
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {formatNumber(material.percentage)}% del totale
-                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{formatNumber(result.percentage)}% of total</div>
                         </div>
                       </div>
                     ))}
@@ -240,7 +263,7 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
 
               <div className="flex justify-end">
                 <Button onClick={handleProceed} size="lg">
-                  Visualizza Risultati Completi
+                  View Complete Results
                 </Button>
               </div>
             </div>

@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Cog, CheckCircle } from "lucide-react"
+import { FileText, Cog, CheckCircle, AlertTriangle } from "lucide-react"
+import { DocumentParser, type ParsedDocument } from "@/lib/document-parser"
+import ParsingDebug from "@/components/parsing-debug"
 
 interface DocumentProcessorProps {
   files: File[]
-  onDataProcessed: (data: any) => void
+  onDataProcessed: (data: ParsedDocument[]) => void
   isProcessing: boolean
   setIsProcessing: (processing: boolean) => void
 }
@@ -22,56 +24,111 @@ export default function DocumentProcessor({
 }: DocumentProcessorProps) {
   const [progress, setProgress] = useState(0)
   const [currentFile, setCurrentFile] = useState("")
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const [parsedDocuments, setParsedDocuments] = useState<ParsedDocument[]>([])
   const [processingSteps, setProcessingSteps] = useState<string[]>([])
+  const [debugData, setDebugData] = useState<
+    { fileName: string; extractedText: string; materials: any[]; categoryBreakdown: any }[]
+  >([])
 
-  const simulateProcessing = async () => {
+  const processDocuments = async () => {
     setIsProcessing(true)
     setProgress(0)
     setProcessingSteps([])
+    setParsedDocuments([])
+    setDebugData([])
 
-    const steps = [
-      "Analisi formato documenti...",
-      "Estrazione testo e tabelle...",
-      "Identificazione materiali...",
-      "Calcolo pesi e quantità...",
-      "Mappatura dati GWP...",
-      "Validazione risultati...",
-    ]
+    const parser = new DocumentParser()
+    const documents: ParsedDocument[] = []
 
-    for (let i = 0; i < steps.length; i++) {
-      setProcessingSteps((prev) => [...prev, steps[i]])
-      setProgress(((i + 1) / steps.length) * 100)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        setCurrentFile(file.name)
+
+        // Step 1: Format analysis
+        setProcessingSteps((prev) => [...prev, `Analyzing format ${file.name}...`])
+        setProgress(((i * 4 + 1) / (files.length * 4)) * 100)
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        // Step 2: Text extraction
+        setProcessingSteps((prev) => [...prev, `Extracting text from ${file.name}...`])
+        setProgress(((i * 4 + 2) / (files.length * 4)) * 100)
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        // Step 3: Material identification
+        setProcessingSteps((prev) => [...prev, `Identifying materials in ${file.name}...`])
+        setProgress(((i * 4 + 3) / (files.length * 4)) * 100)
+
+        // REAL PARSING - NO MOCK
+        const parsedDoc = await parser.parseFile(file)
+        documents.push(parsedDoc)
+
+        // Extract real text for debug
+        let fileText = ""
+        try {
+          if (file.name.toLowerCase().endsWith(".csv") || file.name.toLowerCase().includes(".xls")) {
+            // For Excel/CSV files, show processed content
+            fileText = await file.text()
+          } else {
+            fileText = await file.text()
+          }
+        } catch (error) {
+          fileText = "Error extracting text"
+        }
+
+        setDebugData((prev) => [
+          ...prev,
+          {
+            fileName: file.name,
+            extractedText: fileText,
+            materials: parsedDoc.materials,
+            categoryBreakdown: parsedDoc.categoryBreakdown,
+          },
+        ])
+
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        // Step 4: Results validation
+        setProcessingSteps((prev) => [...prev, `Validating results ${file.name}...`])
+        setProgress(((i * 4 + 4) / (files.length * 4)) * 100)
+        await new Promise((resolve) => setTimeout(resolve, 300))
+      }
+
+      setParsedDocuments(documents)
+      onDataProcessed(documents)
+      setIsProcessing(false)
+    } catch (error) {
+      console.error("Error during processing:", error)
+      setProcessingSteps((prev) => [...prev, `Error: ${error}`])
+      setIsProcessing(false)
     }
-
-    // Simula dati estratti
-    const mockData = {
-      materials: [
-        { name: "Acciaio al carbonio", quantity: 1250, unit: "tonnellate", gwpFactor: 2.1 },
-        { name: "Alluminio", quantity: 85, unit: "tonnellate", gwpFactor: 8.9 },
-        { name: "Rame", quantity: 45, unit: "tonnellate", gwpFactor: 3.2 },
-        { name: "Fibra di vetro", quantity: 120, unit: "tonnellate", gwpFactor: 1.8 },
-        { name: "Vernici e rivestimenti", quantity: 25, unit: "tonnellate", gwpFactor: 4.5 },
-      ],
-      totalWeight: 1525,
-      documentInfo: {
-        shipType: "Yacht da crociera",
-        length: "65m",
-        displacement: "1800 tonnellate",
-        cantiere: files[0]?.name.split(".")[0] || "Cantiere",
-      },
-    }
-
-    setExtractedData(mockData)
-    setIsProcessing(false)
   }
 
   const handleProceed = () => {
-    if (extractedData) {
-      onDataProcessed(extractedData)
+    if (parsedDocuments.length > 0) {
+      onDataProcessed(parsedDocuments)
     }
   }
+
+  const getTotalStats = () => {
+    if (parsedDocuments.length === 0) return null
+
+    const totalMaterials = parsedDocuments.reduce((sum, doc) => sum + doc.materials.length, 0)
+    const identifiedMaterials = parsedDocuments.reduce(
+      (sum, doc) => sum + doc.materials.filter((m) => m.material !== null).length,
+      0,
+    )
+    const totalWeight = parsedDocuments.reduce((sum, doc) => sum + doc.totalWeight, 0)
+
+    return {
+      totalMaterials,
+      identifiedMaterials,
+      identificationRate: totalMaterials > 0 ? (identifiedMaterials / totalMaterials) * 100 : 0,
+      totalWeight: totalWeight / 1000, // Convert to tonnes
+    }
+  }
+
+  const stats = getTotalStats()
 
   return (
     <div className="space-y-6">
@@ -79,20 +136,18 @@ export default function DocumentProcessor({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cog className="h-5 w-5" />
-            Elaborazione Documenti
+            Document Processing
           </CardTitle>
-          <CardDescription>Analisi e estrazione dati dai documenti caricati</CardDescription>
+          <CardDescription>Analysis and data extraction from uploaded documents</CardDescription>
         </CardHeader>
         <CardContent>
-          {!isProcessing && !extractedData && (
+          {!isProcessing && parsedDocuments.length === 0 && (
             <div className="text-center py-8">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Pronto per l'elaborazione</h3>
-              <p className="text-gray-600 mb-6">
-                {files.length} file{"(s)"} pronti per essere analizzati
-              </p>
-              <Button onClick={simulateProcessing} size="lg">
-                Avvia Elaborazione
+              <h3 className="text-lg font-medium mb-2">Ready for processing</h3>
+              <p className="text-gray-600 mb-6">{files.length} files ready to be analyzed</p>
+              <Button onClick={processDocuments} size="lg">
+                Start Processing
               </Button>
             </div>
           )}
@@ -101,16 +156,17 @@ export default function DocumentProcessor({
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Progresso elaborazione</span>
+                  <span className="text-sm font-medium">Processing progress</span>
                   <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="h-2" />
+                {currentFile && <p className="text-sm text-gray-600 mt-2">Current file: {currentFile}</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-40 overflow-y-auto">
                 {processingSteps.map((step, index) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                     <span>{step}</span>
                   </div>
                 ))}
@@ -118,65 +174,94 @@ export default function DocumentProcessor({
             </div>
           )}
 
-          {extractedData && !isProcessing && (
+          {parsedDocuments.length > 0 && !isProcessing && (
             <div className="space-y-6">
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Elaborazione completata con successo! Dati estratti da {files.length} documento/i.
+                  Processing completed! Analyzed {files.length} document(s) with {stats?.totalMaterials} materials
+                  identified.
                 </AlertDescription>
               </Alert>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Informazioni Imbarcazione</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tipo:</span>
-                      <span className="font-medium">{extractedData.documentInfo.shipType}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Lunghezza:</span>
-                      <span className="font-medium">{extractedData.documentInfo.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Dislocamento:</span>
-                      <span className="font-medium">{extractedData.documentInfo.displacement}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Peso totale:</span>
-                      <span className="font-medium">{extractedData.totalWeight} tonnellate</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Materiali Identificati</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {extractedData.materials.slice(0, 3).map((material: any, index: number) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span className="text-gray-600">{material.name}:</span>
-                          <span className="font-medium">
-                            {material.quantity} {material.unit}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="text-xs text-gray-500 pt-2">
-                        +{extractedData.materials.length - 3} altri materiali
+              {stats && (
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Processing Statistics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total materials:</span>
+                        <span className="font-medium">{stats.totalMaterials}</span>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Identified materials:</span>
+                        <span className="font-medium text-green-600">{stats.identifiedMaterials}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Identification rate:</span>
+                        <span
+                          className={`font-medium ${stats.identificationRate > 80 ? "text-green-600" : stats.identificationRate > 60 ? "text-yellow-600" : "text-red-600"}`}
+                        >
+                          {stats.identificationRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total weight:</span>
+                        <span className="font-medium">{stats.totalWeight.toFixed(1)} tonnes</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Processed Documents</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {parsedDocuments.map((doc, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span className="text-gray-600 truncate">{doc.fileName}</span>
+                            <span className="font-medium ml-2">
+                              {doc.materials.filter((m) => m.material !== null).length}/{doc.materials.length}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {stats && stats.identificationRate < 70 && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Warning:</strong> Material identification rate is low ({stats.identificationRate.toFixed(1)}
+                    %). Please verify that the file format is correct.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Debug Section */}
+              {debugData.length > 0 && (
+                <div className="space-y-2">
+                  {debugData.map((debug, index) => (
+                    <ParsingDebug
+                      key={index}
+                      fileName={debug.fileName}
+                      extractedText={debug.extractedText}
+                      parsedMaterials={debug.materials}
+                      categoryBreakdown={debug.categoryBreakdown}
+                    />
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-end">
                 <Button onClick={handleProceed} size="lg">
-                  Procedi al Calcolo GWP
+                  Proceed to Validation
                 </Button>
               </div>
             </div>
@@ -187,15 +272,17 @@ export default function DocumentProcessor({
       {files.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">File in Elaborazione</CardTitle>
+            <CardTitle className="text-lg">Files in Processing</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {files.map((file, index) => (
                 <div key={index} className="flex items-center gap-3 p-2 border rounded">
                   <FileText className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm">{file.name}</span>
-                  {extractedData && <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />}
+                  <span className="text-sm flex-1">{file.name}</span>
+                  {parsedDocuments.find((doc) => doc.fileName === file.name) && (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  )}
                 </div>
               ))}
             </div>

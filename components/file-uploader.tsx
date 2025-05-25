@@ -3,12 +3,9 @@
 import type React from "react"
 
 import { useState, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, FileText, X, CheckCircle } from "lucide-react"
 
 interface FileUploaderProps {
   onFilesUploaded: (files: File[]) => void
@@ -66,91 +63,46 @@ export default function FileUploader({ onFilesUploaded, uploadedFiles }: FileUpl
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Carica Documentazione Lightshipweight
-          </CardTitle>
-          <CardDescription>
-            Carica i documenti del tuo cantiere contenenti le informazioni sui materiali e pesi
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Trascina i file qui o clicca per selezionare</h3>
-            <p className="text-gray-600 mb-4">Supporta PDF, Excel, CSV e altri formati di documentazione</p>
-            <Input
-              type="file"
-              multiple
-              accept=".pdf,.xlsx,.xls,.csv,.txt,.doc,.docx"
-              onChange={handleFileInput}
-              className="hidden"
-              id="file-upload"
-            />
-            <Label htmlFor="file-upload">
-              <Button variant="outline" className="cursor-pointer">
-                Seleziona File
+    <div className="flex flex-col space-y-4">
+      <div
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        className={`border-dashed border-2 rounded-md p-4 flex flex-col items-center justify-center bg-muted hover:bg-accent cursor-pointer ${
+          dragActive ? "bg-accent" : ""
+        }`}
+      >
+        <input
+          type="file"
+          multiple
+          accept=".pdf,.xlsx,.xls,.csv,.txt,.doc,.docx"
+          onChange={handleFileInput}
+          className="hidden"
+          id="file-upload"
+        />
+        <Label htmlFor="file-upload" className="cursor-pointer">
+          <Button variant="outline" type="button" asChild>
+            <span>Select Files</span>
+          </Button>
+        </Label>
+        {dragActive ? <p>Drop files here...</p> : <p>Drag and drop files here, or click to select files</p>}
+      </div>
+
+      {files.length > 0 && (
+        <ul>
+          {files.map((file: File, index) => (
+            <li key={index} className="flex items-center space-x-2">
+              <span>{file.name}</span>
+              <span>({formatFileSize(file.size)})</span>
+              <Button variant="ghost" size="sm" onClick={() => removeFile(index)}>
+                Remove
               </Button>
-            </Label>
-          </div>
-
-          {files.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium mb-3">File Caricati ({files.length})</h4>
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium text-sm">{file.name}</p>
-                        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {files.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <Button onClick={handleUpload} className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Procedi con l'Elaborazione
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Alert>
-        <FileText className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Suggerimento:</strong> Per risultati ottimali, assicurati che i documenti contengano informazioni
-          dettagliate sui materiali, pesi e specifiche tecniche. Il tool è in grado di adattarsi a diversi formati di
-          documentazione utilizzati dai cantieri.
-        </AlertDescription>
-      </Alert>
+            </li>
+          ))}
+        </ul>
+      )}
+      {files.length > 0 && <Button onClick={handleUpload}>Upload Files</Button>}
     </div>
   )
 }
