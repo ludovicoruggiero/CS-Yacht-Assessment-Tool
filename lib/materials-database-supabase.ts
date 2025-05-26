@@ -1,4 +1,5 @@
 import { supabase, type DatabaseMaterial } from "./supabase"
+import { CACHE_DURATIONS } from "./constants"
 
 export interface Material {
   id: string
@@ -14,7 +15,7 @@ export interface Material {
 export class MaterialsDatabase {
   private cache: Material[] = []
   private lastFetch = 0
-  private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minuti
+  private readonly CACHE_DURATION = CACHE_DURATIONS.MATERIALS
 
   constructor() {
     // Carica i dati iniziali
@@ -195,22 +196,6 @@ export class MaterialsDatabase {
       return true
     } catch (error) {
       console.error("Errore nella cancellazione di tutti i materiali:", error)
-      return false
-    }
-  }
-
-  // Ripristina i materiali di default (già inseriti nel database)
-  async resetToDefaults(): Promise<boolean> {
-    try {
-      // Prima cancella tutti i materiali
-      await this.clearAllMaterials()
-
-      // Poi ricarica dalla query SQL iniziale
-      // I dati di default sono già nel database, quindi ricarica semplicemente
-      await this.loadMaterials()
-      return true
-    } catch (error) {
-      console.error("Errore nel ripristino dei materiali di default:", error)
       return false
     }
   }

@@ -24,6 +24,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Edit, Trash2, Search, Download, Upload, Save, CheckCircle, AlertTriangle } from "lucide-react"
 import { MaterialsDatabase, type Material } from "@/lib/materials-database-supabase"
+import { validateMaterial, parseAliases, formatAliases } from "@/lib/utils/material-utils"
+import { MATERIAL_CATEGORIES } from "@/lib/constants"
+import { notificationService } from "@/lib/services/notification-service"
 
 export default function MaterialsManager() {
   const [materialsDb] = useState(() => new MaterialsDatabase())
@@ -47,27 +50,31 @@ export default function MaterialsManager() {
   })
 
   useEffect(() => {
-    const loadMaterials = async () => {
-      try {
-        setIsLoading(true)
-        setConnectionStatus("loading")
-
-        const allMaterials = await materialsDb.getAllMaterials()
-        setMaterials(allMaterials)
-        setFilteredMaterials(allMaterials)
-        setConnectionStatus("connected")
-      } catch (error) {
-        console.error("Errore nel caricamento materiali:", error)
-        setConnectionStatus("error")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     loadMaterials()
   }, [materialsDb])
 
   useEffect(() => {
+    filterMaterials()
+  }, [materials, searchTerm, selectedCategory])
+
+  const loadMaterials = async () => {
+    setIsLoading(true)
+    setConnectionStatus("loading")
+
+    try {
+      const data = await materialsDb.getAllMaterials()
+      setMaterials(data)
+      setFilteredMaterials(data)
+      setConnectionStatus("connected")
+    } catch (error: any) {
+      setConnectionStatus("error")
+      notificationService.error(error.message || "Errore nel caricamento materiali")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filterMaterials = () => {
     let filtered = materials
 
     if (searchTerm) {
@@ -84,131 +91,101 @@ export default function MaterialsManager() {
     }
 
     setFilteredMaterials(filtered)
-  }, [materials, searchTerm, selectedCategory])
+  }
 
   const categories = Array.from(new Set(materials.map((m) => m.category)))
 
   const handleAddMaterial = async () => {
-    if (!newMaterial.name || !newMaterial.category || !newMaterial.gwpFactor) {
-      alert("Please fill in all required fields (Name, Category, GWP Factor)")
+    const validation = validateMaterial(newMaterial)
+    if (!validation.isValid) {
+      notificationService.error(validation.errors.join(", "))
       return
     }
 
-    try {
-      const material: Material = {
-        id: `custom_${Date.now()}`,
-        name: newMaterial.name!,
-        aliases: newMaterial.aliases || [],
-        category: newMaterial.category!,
-        gwpFactor: newMaterial.gwpFactor!,
-        unit: newMaterial.unit || "kg",
-        density: newMaterial.density,
-        description: newMaterial.description,
-      }
+    const material: Material = {
+      id: `custom_${Date.now()}`,
+      name: newMaterial.name!,
+      aliases: newMaterial.aliases || [],
+      category: newMaterial.category!,
+      gwpFactor: newMaterial.gwpFactor!,
+      unit: newMaterial.unit || "kg",
+      density: newMaterial.density,
+      description: newMaterial.description,
+    }
 
-      const success = await materialsDb.addMaterial(material)
-      if (success) {
-        const updatedMaterials = await materialsDb.getAllMaterials()
-        setMaterials(updatedMaterials)
-        setNewMaterial({
-          name: "",
-          aliases: [],
-          category: "",
-          gwpFactor: 0,
-          unit: "kg",
-          density: 0,
-          description: "",
-        })
-        setIsAddDialogOpen(false)
-        alert("Material added successfully")
-      } else {
-        alert("Error adding material")
-      }
-    } catch (error) {
-      alert("Error adding material")
-      console.error("Add error:", error)
+    try {
+      await materialsDb.addMaterial(material)
+      await loadMaterials()
+      resetNewMaterial()
+      setIsAddDialogOpen(false)
+      notificationService.success("Materiale aggiunto con successo")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'aggiunta del materiale")
     }
   }
 
   const handleEditMaterial = async () => {
     if (!editingMaterial) return
 
+    const validation = validateMaterial(editingMaterial)
+    if (!validation.isValid) {
+      notificationService.error(validation.errors.join(", "))
+      return
+    }
+
     try {
-      const success = await materialsDb.updateMaterial(editingMaterial.id, editingMaterial)
-      if (success) {
-        const updatedMaterials = await materialsDb.getAllMaterials()
-        setMaterials(updatedMaterials)
-        setEditingMaterial(null)
-        setIsEditDialogOpen(false)
-        alert("Material updated successfully")
-      } else {
-        alert("Error updating material")
-      }
-    } catch (error) {
-      alert("Error updating material")
-      console.error("Update error:", error)
-    }
-  }
-
-  const handleDeleteAllMaterials = async () => {
-    if (confirm("Are you sure you want to delete ALL materials? This action cannot be undone.")) {
-      try {
-        const success = await materialsDb.clearAllMaterials()
-        if (success) {
-          setMaterials([])
-          setFilteredMaterials([])
-          alert("All materials have been deleted")
-        } else {
-          alert("Error deleting materials")
-        }
-      } catch (error) {
-        alert("Error deleting materials")
-        console.error("Delete error:", error)
-      }
-    }
-  }
-
-  const handleResetToDefaults = async () => {
-    if (confirm("Reset to default materials? This will replace all current materials with the original database.")) {
-      try {
-        const success = await materialsDb.resetToDefaults()
-        if (success) {
-          const updatedMaterials = await materialsDb.getAllMaterials()
-          setMaterials(updatedMaterials)
-          alert("Database reset to defaults")
-        } else {
-          alert("Error resetting database")
-        }
-      } catch (error) {
-        alert("Error resetting database")
-        console.error("Reset error:", error)
-      }
+      await materialsDb.updateMaterial(editingMaterial.id, editingMaterial)
+      await loadMaterials()
+      setEditingMaterial(null)
+      setIsEditDialogOpen(false)
+      notificationService.success("Materiale aggiornato con successo")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'aggiornamento del materiale")
     }
   }
 
   const handleDeleteMaterial = async (id: string) => {
-    if (confirm("Are you sure you want to delete this material?")) {
-      try {
-        const success = await materialsDb.removeMaterial(id)
-        if (success) {
-          const updatedMaterials = await materialsDb.getAllMaterials()
-          setMaterials(updatedMaterials)
-          alert("Material deleted successfully")
-        } else {
-          alert("Error deleting material")
-        }
-      } catch (error) {
-        alert("Error deleting material")
-        console.error("Delete error:", error)
-      }
+    if (!confirm("Sei sicuro di voler eliminare questo materiale?")) return
+
+    try {
+      await materialsDb.removeMaterial(id)
+      await loadMaterials()
+      notificationService.success("Materiale eliminato con successo")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'eliminazione del materiale")
+    }
+  }
+
+  const handleDeleteAllMaterials = async () => {
+    if (!confirm("Sei sicuro di voler eliminare TUTTI i materiali? Questa azione non può essere annullata.")) return
+
+    try {
+      await materialsDb.clearAllMaterials()
+      setMaterials([])
+      setFilteredMaterials([])
+      notificationService.success("Tutti i materiali sono stati eliminati")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'eliminazione di tutti i materiali")
+    }
+  }
+
+  const handleResetToDefaults = async () => {
+    if (!confirm("Ripristinare i materiali di default? Questo sostituirà tutti i materiali attuali.")) return
+
+    try {
+      await materialsDb.resetToDefaults()
+      await loadMaterials()
+      notificationService.success("Database ripristinato ai valori di default")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nel ripristino del database")
     }
   }
 
   const exportDatabase = async () => {
     try {
-      const materials = await materialsDb.exportMaterials()
-      const data = JSON.stringify(materials, null, 2)
-      const blob = new Blob([data], { type: "application/json" })
+      const data = await materialsDb.exportMaterials()
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
@@ -217,9 +194,8 @@ export default function MaterialsManager() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (error) {
-      alert("Error exporting database")
-      console.error("Export error:", error)
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'esportazione del database")
     }
   }
 
@@ -233,387 +209,393 @@ export default function MaterialsManager() {
         const importedMaterials = JSON.parse(e.target?.result as string) as Material[]
 
         if (!Array.isArray(importedMaterials)) {
-          throw new Error("Invalid file format")
+          throw new Error("Formato file non valido")
         }
 
-        const successCount = await materialsDb.importMaterials(importedMaterials)
-        const updatedMaterials = await materialsDb.getAllMaterials()
-        setMaterials(updatedMaterials)
-        alert(`Successfully imported ${successCount} materials`)
-
-        // Reset file input
+        const importedCount = await materialsDb.importMaterials(importedMaterials)
+        await loadMaterials()
+        notificationService.success(`Importati con successo ${importedCount} materiali`)
         event.target.value = ""
-      } catch (error) {
-        alert("Error importing file. Please check the file format.")
-        console.error("Import error:", error)
+      } catch (error: any) {
+        notificationService.error(error.message || "Errore nell'importazione del file. Controlla il formato del file.")
       }
     }
     reader.readAsText(file)
   }
 
-  const parseAliases = (aliasesString: string): string[] => {
-    return aliasesString
-      .split(",")
-      .map((alias) => alias.trim())
-      .filter((alias) => alias.length > 0)
+  const resetNewMaterial = () => {
+    setNewMaterial({
+      name: "",
+      aliases: [],
+      category: "",
+      gwpFactor: 0,
+      unit: "kg",
+      density: 0,
+      description: "",
+    })
+  }
+
+  const renderConnectionStatus = () => {
+    switch (connectionStatus) {
+      case "loading":
+        return (
+          <Alert className="mb-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>Connessione al database Supabase...</span>
+            </div>
+          </Alert>
+        )
+      case "error":
+        return (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Errore di connessione al database. Alcune funzionalità potrebbero non funzionare.
+            </AlertDescription>
+          </Alert>
+        )
+      case "connected":
+        return (
+          <Alert className="mb-4">
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>Connesso con successo al database Supabase.</AlertDescription>
+          </Alert>
+        )
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Caricamento materiali...</span>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Edit className="h-5 w-5" />
-                Materials Database Management
-              </CardTitle>
-              <CardDescription>
-                Add, edit or delete materials from the database to improve automatic recognition
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Edit className="h-5 w-5" />
+            Gestione Database Materiali
+          </CardTitle>
+          <CardDescription>
+            Aggiungi, modifica o elimina materiali dal database per migliorare il riconoscimento automatico
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Connection Status */}
-          {connectionStatus === "loading" && (
-            <Alert className="mb-4">
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span>Connecting to Supabase database...</span>
-              </div>
-            </Alert>
-          )}
+          {renderConnectionStatus()}
 
-          {connectionStatus === "error" && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>Error connecting to database. Some features may not work properly.</AlertDescription>
-            </Alert>
-          )}
+          <Tabs defaultValue="list" className="w-full">
+            <TabsList>
+              <TabsTrigger value="list">Lista Materiali</TabsTrigger>
+              <TabsTrigger value="stats">Statistiche</TabsTrigger>
+            </TabsList>
 
-          {connectionStatus === "connected" && (
-            <Alert className="mb-4">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>Successfully connected to Supabase database.</AlertDescription>
-            </Alert>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2">Loading materials...</span>
-            </div>
-          ) : (
-            <Tabs defaultValue="list" className="w-full">
-              <TabsList>
-                <TabsTrigger value="list">Materials List</TabsTrigger>
-                <TabsTrigger value="stats">Statistics</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="list" className="space-y-4">
-                {/* Controls */}
-                <div className="flex gap-4 items-center">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="Search materials..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
+            <TabsContent value="list" className="space-y-4">
+              {/* Controls */}
+              <div className="flex gap-4 items-center">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Cerca materiali..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="All categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Material
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Add New Material</DialogTitle>
-                        <DialogDescription>
-                          Enter the information for the new material to add to the database
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="name">Material Name *</Label>
-                            <Input
-                              id="name"
-                              value={newMaterial.name}
-                              onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                              placeholder="e.g. Stainless steel"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="category">Category *</Label>
-                            <Select
-                              value={newMaterial.category}
-                              onValueChange={(value) => setNewMaterial({ ...newMaterial, category: value })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categories.map((category) => (
-                                  <SelectItem key={category} value={category}>
-                                    {category}
-                                  </SelectItem>
-                                ))}
-                                <SelectItem value="New Category">+ New Category</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                </div>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Tutte le categorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutte le categorie</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Aggiungi Materiale
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Aggiungi Nuovo Materiale</DialogTitle>
+                      <DialogDescription>
+                        Inserisci le informazioni per il nuovo materiale da aggiungere al database
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="aliases">Aliases (comma separated)</Label>
+                          <Label htmlFor="name">Nome Materiale *</Label>
                           <Input
-                            id="aliases"
-                            value={newMaterial.aliases?.join(", ")}
-                            onChange={(e) => setNewMaterial({ ...newMaterial, aliases: parseAliases(e.target.value) })}
-                            placeholder="e.g. inox, stainless steel, aisi 316"
+                            id="name"
+                            value={newMaterial.name}
+                            onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
+                            placeholder="es. Acciaio inossidabile"
                           />
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <Label htmlFor="gwpFactor">GWP Factor (kg CO₂eq/kg) *</Label>
-                            <Input
-                              id="gwpFactor"
-                              type="number"
-                              step="0.1"
-                              value={newMaterial.gwpFactor}
-                              onChange={(e) =>
-                                setNewMaterial({ ...newMaterial, gwpFactor: Number.parseFloat(e.target.value) })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="unit">Unit</Label>
-                            <Select
-                              value={newMaterial.unit}
-                              onValueChange={(value) => setNewMaterial({ ...newMaterial, unit: value })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="kg">kg</SelectItem>
-                                <SelectItem value="m³">m³</SelectItem>
-                                <SelectItem value="m²">m²</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="density">Density (kg/m³)</Label>
-                            <Input
-                              id="density"
-                              type="number"
-                              value={newMaterial.density}
-                              onChange={(e) =>
-                                setNewMaterial({ ...newMaterial, density: Number.parseFloat(e.target.value) })
-                              }
-                            />
-                          </div>
+                        <div>
+                          <Label htmlFor="category">Categoria *</Label>
+                          <Select
+                            value={newMaterial.category}
+                            onValueChange={(value) => setNewMaterial({ ...newMaterial, category: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleziona categoria" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MATERIAL_CATEGORIES.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="aliases">Alias (separati da virgola)</Label>
+                        <Input
+                          id="aliases"
+                          value={formatAliases(newMaterial.aliases || [])}
+                          onChange={(e) => setNewMaterial({ ...newMaterial, aliases: parseAliases(e.target.value) })}
+                          placeholder="es. inox, stainless steel, aisi 316"
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="gwpFactor">Fattore GWP (kg CO₂eq/kg) *</Label>
+                          <Input
+                            id="gwpFactor"
+                            type="number"
+                            step="0.1"
+                            value={newMaterial.gwpFactor}
+                            onChange={(e) =>
+                              setNewMaterial({ ...newMaterial, gwpFactor: Number.parseFloat(e.target.value) })
+                            }
+                          />
                         </div>
                         <div>
-                          <Label htmlFor="description">Description</Label>
-                          <Textarea
-                            id="description"
-                            value={newMaterial.description}
-                            onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
-                            placeholder="Material description and characteristics"
+                          <Label htmlFor="unit">Unità</Label>
+                          <Select
+                            value={newMaterial.unit}
+                            onValueChange={(value) => setNewMaterial({ ...newMaterial, unit: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="kg">kg</SelectItem>
+                              <SelectItem value="m³">m³</SelectItem>
+                              <SelectItem value="m²">m²</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="density">Densità (kg/m³)</Label>
+                          <Input
+                            id="density"
+                            type="number"
+                            value={newMaterial.density}
+                            onChange={(e) =>
+                              setNewMaterial({ ...newMaterial, density: Number.parseFloat(e.target.value) })
+                            }
                           />
                         </div>
                       </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleAddMaterial}>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Material
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                {/* Materials table */}
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>GWP Factor</TableHead>
-                        <TableHead>Aliases</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredMaterials.map((material) => (
-                        <TableRow key={material.id}>
-                          <TableCell className="font-medium">{material.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{material.category}</Badge>
-                          </TableCell>
-                          <TableCell>{material.gwpFactor} kg CO₂eq/kg</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {material.aliases.slice(0, 3).map((alias, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {alias}
-                                </Badge>
-                              ))}
-                              {material.aliases.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{material.aliases.length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingMaterial({ ...material })
-                                  setIsEditDialogOpen(true)
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteMaterial(material.id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {filteredMaterials.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">No materials found with selected filters</div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button variant="destructive" onClick={handleDeleteAllMaterials}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete All
-                    </Button>
-                    <Button variant="outline" onClick={handleResetToDefaults}>
-                      Reset to Defaults
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={exportDatabase}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                    <Label htmlFor="import-file">
-                      <Button variant="outline" asChild>
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Import
-                        </span>
-                      </Button>
-                    </Label>
-                    <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="stats" className="space-y-4">
-                <div className="grid md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <p className="text-2xl font-bold text-blue-600">{materials.length}</p>
-                      <p className="text-sm text-gray-600">Total Materials</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <p className="text-2xl font-bold text-green-600">{categories.length}</p>
-                      <p className="text-sm text-gray-600">Categories</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <p className="text-2xl font-bold text-purple-600">
-                        {materials.reduce((sum, m) => sum + m.aliases.length, 0)}
-                      </p>
-                      <p className="text-sm text-gray-600">Total Aliases</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <p className="text-2xl font-bold text-orange-600">
-                        {materials.length > 0
-                          ? (materials.reduce((sum, m) => sum + m.gwpFactor, 0) / materials.length).toFixed(1)
-                          : 0}
-                      </p>
-                      <p className="text-sm text-gray-600">Average GWP</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Distribution by Category</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {categories.map((category) => {
-                        const count = materials.filter((m) => m.category === category).length
-                        const percentage = materials.length > 0 ? (count / materials.length) * 100 : 0
-                        return (
-                          <div key={category}>
-                            <div className="flex justify-between mb-1">
-                              <span className="text-sm font-medium">{category}</span>
-                              <span className="text-sm text-gray-600">
-                                {count} ({percentage.toFixed(1)}%)
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
-                            </div>
-                          </div>
-                        )
-                      })}
+                      <div>
+                        <Label htmlFor="description">Descrizione</Label>
+                        <Textarea
+                          id="description"
+                          value={newMaterial.description}
+                          onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
+                          placeholder="Descrizione e caratteristiche del materiale"
+                        />
+                      </div>
                     </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                        Annulla
+                      </Button>
+                      <Button onClick={handleAddMaterial}>
+                        <Save className="h-4 w-4 mr-2" />
+                        Salva Materiale
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Materials table */}
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Fattore GWP</TableHead>
+                      <TableHead>Alias</TableHead>
+                      <TableHead>Azioni</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMaterials.map((material) => (
+                      <TableRow key={material.id}>
+                        <TableCell className="font-medium">{material.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{material.category}</Badge>
+                        </TableCell>
+                        <TableCell>{material.gwpFactor} kg CO₂eq/kg</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {material.aliases.slice(0, 3).map((alias, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {alias}
+                              </Badge>
+                            ))}
+                            {material.aliases.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{material.aliases.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingMaterial({ ...material })
+                                setIsEditDialogOpen(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMaterial(material.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {filteredMaterials.length === 0 && (
+                <div className="text-center py-8 text-gray-500">Nessun materiale trovato con i filtri selezionati</div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <Button variant="destructive" onClick={handleDeleteAllMaterials}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Elimina Tutto
+                  </Button>
+                  <Button variant="outline" onClick={handleResetToDefaults}>
+                    Ripristina Default
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={exportDatabase}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Esporta
+                  </Button>
+                  <Label htmlFor="import-file">
+                    <Button variant="outline" asChild>
+                      <span>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Importa
+                      </span>
+                    </Button>
+                  </Label>
+                  <Input id="import-file" type="file" accept=".json" onChange={importDatabase} className="hidden" />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="stats" className="space-y-4">
+              <div className="grid md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{materials.length}</p>
+                    <p className="text-sm text-gray-600">Materiali Totali</p>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-          )}
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-green-600">{categories.length}</p>
+                    <p className="text-sm text-gray-600">Categorie</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-purple-600">
+                      {materials.reduce((sum, m) => sum + m.aliases.length, 0)}
+                    </p>
+                    <p className="text-sm text-gray-600">Alias Totali</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-orange-600">
+                      {materials.length > 0
+                        ? (materials.reduce((sum, m) => sum + m.gwpFactor, 0) / materials.length).toFixed(1)
+                        : 0}
+                    </p>
+                    <p className="text-sm text-gray-600">GWP Medio</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Distribuzione per Categoria</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {categories.map((category) => {
+                      const count = materials.filter((m) => m.category === category).length
+                      const percentage = materials.length > 0 ? (count / materials.length) * 100 : 0
+                      return (
+                        <div key={category}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">{category}</span>
+                            <span className="text-sm text-gray-600">
+                              {count} ({percentage.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -621,14 +603,14 @@ export default function MaterialsManager() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Material</DialogTitle>
-            <DialogDescription>Modify the information for the selected material</DialogDescription>
+            <DialogTitle>Modifica Materiale</DialogTitle>
+            <DialogDescription>Modifica le informazioni del materiale selezionato</DialogDescription>
           </DialogHeader>
           {editingMaterial && (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-name">Material Name</Label>
+                  <Label htmlFor="edit-name">Nome Materiale</Label>
                   <Input
                     id="edit-name"
                     value={editingMaterial.name}
@@ -636,7 +618,7 @@ export default function MaterialsManager() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-category">Category</Label>
+                  <Label htmlFor="edit-category">Categoria</Label>
                   <Select
                     value={editingMaterial.category}
                     onValueChange={(value) => setEditingMaterial({ ...editingMaterial, category: value })}
@@ -645,7 +627,7 @@ export default function MaterialsManager() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {MATERIAL_CATEGORIES.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -655,16 +637,16 @@ export default function MaterialsManager() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-aliases">Aliases</Label>
+                <Label htmlFor="edit-aliases">Alias</Label>
                 <Input
                   id="edit-aliases"
-                  value={editingMaterial.aliases.join(", ")}
+                  value={formatAliases(editingMaterial.aliases)}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, aliases: parseAliases(e.target.value) })}
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="edit-gwpFactor">GWP Factor</Label>
+                  <Label htmlFor="edit-gwpFactor">Fattore GWP</Label>
                   <Input
                     id="edit-gwpFactor"
                     type="number"
@@ -676,7 +658,7 @@ export default function MaterialsManager() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-unit">Unit</Label>
+                  <Label htmlFor="edit-unit">Unità</Label>
                   <Select
                     value={editingMaterial.unit}
                     onValueChange={(value) => setEditingMaterial({ ...editingMaterial, unit: value })}
@@ -692,7 +674,7 @@ export default function MaterialsManager() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="edit-density">Density</Label>
+                  <Label htmlFor="edit-density">Densità</Label>
                   <Input
                     id="edit-density"
                     type="number"
@@ -704,7 +686,7 @@ export default function MaterialsManager() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-description">Description</Label>
+                <Label htmlFor="edit-description">Descrizione</Label>
                 <Textarea
                   id="edit-description"
                   value={editingMaterial.description || ""}
@@ -715,11 +697,11 @@ export default function MaterialsManager() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
+              Annulla
             </Button>
             <Button onClick={handleEditMaterial}>
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              Salva Modifiche
             </Button>
           </DialogFooter>
         </DialogContent>

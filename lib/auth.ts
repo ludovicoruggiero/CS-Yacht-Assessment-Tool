@@ -15,6 +15,7 @@ export interface LoginCredentials {
 
 export class AuthService {
   private currentUser: User | null = null
+  private readonly SESSION_KEY = "yacht-gwp-user"
 
   constructor() {
     // Carica l'utente dalla sessione se presente
@@ -23,7 +24,7 @@ export class AuthService {
 
   private loadUserFromSession(): void {
     try {
-      const userData = sessionStorage.getItem("yacht-gwp-user")
+      const userData = sessionStorage.getItem(this.SESSION_KEY)
       if (userData) {
         this.currentUser = JSON.parse(userData)
       }
@@ -35,7 +36,7 @@ export class AuthService {
 
   private saveUserToSession(user: User): void {
     try {
-      sessionStorage.setItem("yacht-gwp-user", JSON.stringify(user))
+      sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(user))
     } catch (error) {
       console.error("Error saving user to session:", error)
     }
@@ -43,7 +44,7 @@ export class AuthService {
 
   private clearUserFromSession(): void {
     try {
-      sessionStorage.removeItem("yacht-gwp-user")
+      sessionStorage.removeItem(this.SESSION_KEY)
     } catch (error) {
       console.error("Error clearing user from session:", error)
     }

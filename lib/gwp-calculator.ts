@@ -1,4 +1,5 @@
 import type { ParsedDocument, ParsedMaterial } from "./document-parser"
+import { GWP_FACTORS, GWP_BENCHMARKS } from "./constants"
 
 export interface GWPResult {
   material: ParsedMaterial
@@ -30,16 +31,12 @@ export interface GWPCalculation {
 
 export class GWPCalculator {
   // Fattori di moltiplicazione per le diverse fasi
-  private readonly PRODUCTION_FACTOR = 0.75
-  private readonly TRANSPORT_FACTOR = 0.15
-  private readonly PROCESSING_FACTOR = 0.1
+  private readonly PRODUCTION_FACTOR = GWP_FACTORS.PRODUCTION
+  private readonly TRANSPORT_FACTOR = GWP_FACTORS.TRANSPORT
+  private readonly PROCESSING_FACTOR = GWP_FACTORS.PROCESSING
 
   // Benchmark del settore (kg CO2eq per tonnellata di displacement)
-  private readonly BENCHMARKS = {
-    industry_average: 1580, // kg CO2eq/t displacement
-    best_practice: 1220, // kg CO2eq/t displacement
-    regulatory_limit: 1950, // kg CO2eq/t displacement
-  }
+  private readonly BENCHMARKS = GWP_BENCHMARKS
 
   calculateGWP(parsedDoc: ParsedDocument): GWPCalculation {
     const results: GWPResult[] = []

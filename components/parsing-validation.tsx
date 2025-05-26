@@ -4,37 +4,20 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  CheckCircle,
-  Edit,
-  Plus,
-  Search,
-  Save,
-  X,
-  Check,
-  HelpCircle,
-  Package,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { CheckCircle, Search, Package } from "lucide-react"
 import type { ParsedDocument, ParsedMaterial } from "@/lib/document-parser"
 import { MaterialsDatabase, type Material } from "@/lib/materials-database-supabase"
 import { PCRCategorizer, type PCRCategory } from "@/lib/pcr-categories"
+import { validateMaterial } from "@/lib/utils/material-utils"
+import { notificationService } from "@/lib/services/notification-service"
+
+// Import dei componenti modulari
+import { MaterialStats } from "./parsing-validation/material-stats"
+import { CategoryCard } from "./parsing-validation/category-card"
+import { UncategorizedCard } from "./parsing-validation/uncategorized-card"
+import { AddMaterialDialog } from "./parsing-validation/add-material-dialog"
 
 interface ValidationMaterial extends ParsedMaterial {
   isValidated: boolean
@@ -56,6 +39,8 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
   const [isAddMaterialDialogOpen, setIsAddMaterialDialogOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [availableMaterials, setAvailableMaterials] = useState<Material[]>([])
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [newMaterial, setNewMaterial] = useState<Partial<Material>>({
     name: "",
     aliases: [],
@@ -65,17 +50,13 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
     description: "",
   })
 
-  const [availableMaterials, setAvailableMaterials] = useState<Material[]>([])
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
-  const [selectedMaterialCategory, setSelectedMaterialCategory] = useState<string>("all")
-
   const loadAvailableMaterials = async () => {
     setIsLoadingMaterials(true)
     try {
       const materials = await materialsDb.getAllMaterials()
       setAvailableMaterials(materials)
-    } catch (error) {
-      console.error("Errore nel caricamento materiali:", error)
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nel caricamento materiali")
     } finally {
       setIsLoadingMaterials(false)
     }
@@ -91,14 +72,10 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
 
       for (const doc of parsedDocuments) {
         for (const material of doc.materials) {
-          const suggestedMaterials =
-            material.material === null ? await getSuggestedMaterials(material.originalText) : []
-
           const validationMaterial: ValidationMaterial = {
             ...material,
             isValidated: material.material !== null && material.confidence > 0.8,
             userModified: false,
-            suggestedMaterials,
           }
           allMaterials.push(validationMaterial)
         }
@@ -118,21 +95,6 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
 
     initializeValidationMaterials()
   }, [parsedDocuments])
-
-  const getSuggestedMaterials = async (searchText: string): Promise<Material[]> => {
-    const allMaterials = await materialsDb.getAllMaterials()
-    const searchLower = searchText.toLowerCase()
-
-    return allMaterials
-      .filter((material) => {
-        const nameMatch = material.name.toLowerCase().includes(searchLower)
-        const aliasMatch = material.aliases.some(
-          (alias) => alias.toLowerCase().includes(searchLower) || searchLower.includes(alias.toLowerCase()),
-        )
-        return nameMatch || aliasMatch
-      })
-      .slice(0, 5)
-  }
 
   const handleMaterialSelection = (index: number, selectedMaterial: Material) => {
     setValidationMaterials((prev) => {
@@ -166,16 +128,19 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       const updated = [...prev]
       updated[index] = {
         ...updated[index],
-        quantity: newQuantity * 1000,
+        quantity: newQuantity * 1000, // Convert to kg
         userModified: true,
       }
       return updated
     })
   }
 
-  const handleAddCustomMaterial = (index: number) => {
-    if (!newMaterial.name || !newMaterial.category || !newMaterial.gwpFactor) {
-      alert("Compila tutti i campi obbligatori")
+  const handleAddCustomMaterial = async () => {
+    if (editingIndex === null) return
+
+    const validation = validateMaterial(newMaterial)
+    if (!validation.isValid) {
+      notificationService.error(validation.errors.join(", "))
       return
     }
 
@@ -189,9 +154,19 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       description: newMaterial.description,
     }
 
-    materialsDb.addMaterial(customMaterial)
-    handleMaterialSelection(index, customMaterial)
+    try {
+      await materialsDb.addMaterial(customMaterial)
+      handleMaterialSelection(editingIndex, customMaterial)
+      resetNewMaterial()
+      setIsAddMaterialDialogOpen(false)
+      setEditingIndex(null)
+      notificationService.success("Materiale personalizzato aggiunto con successo")
+    } catch (error: any) {
+      notificationService.error(error.message || "Errore nell'aggiunta del materiale personalizzato")
+    }
+  }
 
+  const resetNewMaterial = () => {
     setNewMaterial({
       name: "",
       aliases: [],
@@ -200,8 +175,6 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       unit: "kg",
       description: "",
     })
-    setIsAddMaterialDialogOpen(false)
-    setEditingIndex(null)
   }
 
   const handleValidationToggle = (index: number) => {
@@ -217,6 +190,11 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
 
   const handleRemoveMaterial = (index: number) => {
     setValidationMaterials((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAddMaterial = (index: number) => {
+    setEditingIndex(index)
+    setIsAddMaterialDialogOpen(true)
   }
 
   const handleComplete = () => {
@@ -358,38 +336,7 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
         </CardHeader>
         <CardContent>
           {/* Statistiche */}
-          <div className="grid md:grid-cols-5 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-                <p className="text-sm text-gray-600">Materiali Totali</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.identified}</p>
-                <p className="text-sm text-gray-600">Identificati</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-orange-600">{stats.categorized}</p>
-                <p className="text-sm text-gray-600">Categorizzati PCR</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-purple-600">{stats.validated}</p>
-                <p className="text-sm text-gray-600">Validati</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.userModified}</p>
-                <p className="text-sm text-gray-600">Modificati</p>
-              </CardContent>
-            </Card>
-          </div>
+          <MaterialStats stats={stats} />
 
           {/* Alert di stato */}
           {stats.categorized < stats.total && (
@@ -432,277 +379,31 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
 
           {/* Materiali organizzati per macrogruppo */}
           <div className="space-y-4">
-            {Object.entries(categories).map(([categoryId, categoryData]) => {
-              const isExpanded = expandedCategories.has(categoryId)
-              const totalWeight = categoryData.materials.reduce((sum, m) => sum + m.quantity, 0)
-
-              return (
-                <Card key={categoryId}>
-                  <Collapsible open={isExpanded} onOpenChange={() => toggleCategory(categoryId)}>
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-gray-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="font-mono">
-                                  {categoryData.category.code}
-                                </Badge>
-                                <h3 className="font-medium">{categoryData.category.name}</h3>
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">{categoryData.category.description}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-blue-600">{(totalWeight / 1000).toFixed(1)}t</p>
-                            <p className="text-sm text-gray-600">{categoryData.materials.length} materiali</p>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <div className="space-y-3">
-                          {categoryData.materials.map((material, idx) => {
-                            const globalIndex = validationMaterials.indexOf(material)
-                            return (
-                              <div key={globalIndex} className="p-3 border rounded-lg">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-sm mb-1">{material.originalText}</div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      {material.material ? (
-                                        <Badge variant="secondary" className="text-xs">
-                                          {material.material.name}
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="destructive" className="text-xs">
-                                          Non identificato
-                                        </Badge>
-                                      )}
-                                      <div className="flex items-center gap-1">
-                                        <div
-                                          className={`w-2 h-2 rounded-full ${
-                                            material.confidence > 0.8
-                                              ? "bg-green-500"
-                                              : material.confidence > 0.5
-                                                ? "bg-yellow-500"
-                                                : "bg-red-500"
-                                          }`}
-                                        />
-                                        <span className="text-xs text-gray-600">
-                                          {Math.round(material.confidence * 100)}%
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-2">
-                                        <Label className="text-xs">Peso (t):</Label>
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={(material.quantity / 1000).toFixed(1)}
-                                          onChange={(e) =>
-                                            handleQuantityChange(globalIndex, Number.parseFloat(e.target.value))
-                                          }
-                                          className="w-20 h-6 text-xs"
-                                        />
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleValidationToggle(globalIndex)}
-                                        className={material.isValidated ? "text-green-600" : "text-gray-400"}
-                                      >
-                                        {material.isValidated ? (
-                                          <Check className="h-4 w-4" />
-                                        ) : (
-                                          <HelpCircle className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-1 ml-4">
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button variant="ghost" size="sm">
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                          <DialogTitle>Modifica Materiale</DialogTitle>
-                                          <DialogDescription>
-                                            Modifica il materiale e il macrogruppo PCR
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4">
-                                          <div>
-                                            <Label>Testo originale:</Label>
-                                            <p className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
-                                              {material.originalText}
-                                            </p>
-                                          </div>
-
-                                          {/* Category Filter */}
-                                          <div>
-                                            <Label>Filtra per categoria:</Label>
-                                            <Select
-                                              value={selectedMaterialCategory}
-                                              onValueChange={setSelectedMaterialCategory}
-                                            >
-                                              <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Tutte le categorie" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="all">Tutte le categorie</SelectItem>
-                                                {Array.from(new Set(availableMaterials.map((m) => m.category))).map(
-                                                  (category) => (
-                                                    <SelectItem key={category} value={category}>
-                                                      {category}
-                                                    </SelectItem>
-                                                  ),
-                                                )}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-
-                                          <div>
-                                            <Label>Materiali disponibili:</Label>
-                                            <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-                                              {isLoadingMaterials ? (
-                                                <div className="flex items-center justify-center p-4">
-                                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                                                  <span className="ml-2">Caricamento materiali...</span>
-                                                </div>
-                                              ) : (
-                                                availableMaterials
-                                                  .filter(
-                                                    (dbMaterial) =>
-                                                      selectedMaterialCategory === "all" ||
-                                                      dbMaterial.category === selectedMaterialCategory,
-                                                  )
-                                                  .map((dbMaterial) => (
-                                                    <Button
-                                                      key={dbMaterial.id}
-                                                      variant="ghost"
-                                                      className="w-full justify-start text-left h-auto p-2"
-                                                      onClick={() => {
-                                                        handleMaterialSelection(globalIndex, dbMaterial)
-                                                      }}
-                                                    >
-                                                      <div>
-                                                        <div className="font-medium">{dbMaterial.name}</div>
-                                                        <div className="text-xs text-gray-500">
-                                                          {dbMaterial.category} - {dbMaterial.gwpFactor} kg CO₂eq/kg
-                                                        </div>
-                                                      </div>
-                                                    </Button>
-                                                  ))
-                                              )}
-                                              {!isLoadingMaterials &&
-                                                availableMaterials.filter(
-                                                  (dbMaterial) =>
-                                                    selectedMaterialCategory === "all" ||
-                                                    dbMaterial.category === selectedMaterialCategory,
-                                                ).length === 0 && (
-                                                  <div className="text-center p-4 text-gray-500">
-                                                    Nessun materiale trovato per questa categoria
-                                                  </div>
-                                                )}
-                                            </div>
-                                          </div>
-
-                                          <div className="border-t pt-4">
-                                            <Button
-                                              variant="outline"
-                                              onClick={() => {
-                                                setEditingIndex(globalIndex)
-                                                setIsAddMaterialDialogOpen(true)
-                                              }}
-                                              className="w-full"
-                                            >
-                                              <Plus className="h-4 w-4 mr-2" />
-                                              Aggiungi Nuovo Materiale
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveMaterial(globalIndex)}
-                                      className="text-red-600"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-              )
-            })}
+            {Object.entries(categories).map(([categoryId, categoryData]) => (
+              <CategoryCard
+                key={categoryId}
+                categoryId={categoryId}
+                categoryData={categoryData}
+                isExpanded={expandedCategories.has(categoryId)}
+                validationMaterials={validationMaterials}
+                availableMaterials={availableMaterials}
+                isLoadingMaterials={isLoadingMaterials}
+                onToggleCategory={toggleCategory}
+                onMaterialSelection={handleMaterialSelection}
+                onQuantityChange={handleQuantityChange}
+                onValidationToggle={handleValidationToggle}
+                onRemoveMaterial={handleRemoveMaterial}
+                onAddMaterial={handleAddMaterial}
+              />
+            ))}
 
             {/* Materiali non categorizzati */}
-            {uncategorized.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-yellow-600">
-                    <Package className="h-5 w-5" />
-                    Materiali Non Categorizzati ({uncategorized.length})
-                  </CardTitle>
-                  <CardDescription>Questi materiali non sono stati assegnati a un macrogruppo PCR</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {uncategorized.map((material) => {
-                      const globalIndex = validationMaterials.indexOf(material)
-                      return (
-                        <div key={globalIndex} className="p-3 border rounded-lg bg-yellow-50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium text-sm mb-1">{material.originalText}</div>
-                              <div className="flex items-center gap-2">
-                                <Select
-                                  value=""
-                                  onValueChange={(value) => {
-                                    const category = allCategories.find((c) => c.id === value)
-                                    if (category) handleCategorySelection(globalIndex, category)
-                                  }}
-                                >
-                                  <SelectTrigger className="w-64 h-6 text-xs">
-                                    <SelectValue placeholder="Assegna macrogruppo PCR" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {allCategories.map((category) => (
-                                      <SelectItem key={category.id} value={category.id}>
-                                        {category.code} - {category.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">{(material.quantity / 1000).toFixed(1)}t</p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <UncategorizedCard
+              uncategorized={uncategorized}
+              allCategories={allCategories}
+              validationMaterials={validationMaterials}
+              onCategorySelection={handleCategorySelection}
+            />
           </div>
 
           {/* Pulsante di completamento */}
@@ -720,111 +421,13 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       </Card>
 
       {/* Dialog per aggiungere materiale personalizzato */}
-      <Dialog open={isAddMaterialDialogOpen} onOpenChange={setIsAddMaterialDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Aggiungi Materiale Personalizzato</DialogTitle>
-            <DialogDescription>Crea un nuovo materiale per questo elemento non identificato</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="custom-name">Nome Materiale *</Label>
-                <Input
-                  id="custom-name"
-                  value={newMaterial.name}
-                  onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                  placeholder="es. Acciaio speciale"
-                />
-              </div>
-              <div>
-                <Label htmlFor="custom-category">Categoria *</Label>
-                <Select
-                  value={newMaterial.category}
-                  onValueChange={(value) => setNewMaterial({ ...newMaterial, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Metalli">Metalli</SelectItem>
-                    <SelectItem value="Compositi">Compositi</SelectItem>
-                    <SelectItem value="Legno">Legno</SelectItem>
-                    <SelectItem value="Vernici">Vernici</SelectItem>
-                    <SelectItem value="Plastiche">Plastiche</SelectItem>
-                    <SelectItem value="Isolanti">Isolanti</SelectItem>
-                    <SelectItem value="Vetro">Vetro</SelectItem>
-                    <SelectItem value="Tessuti">Tessuti</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="custom-aliases">Alias (separati da virgola)</Label>
-              <Input
-                id="custom-aliases"
-                value={newMaterial.aliases?.join(", ")}
-                onChange={(e) =>
-                  setNewMaterial({
-                    ...newMaterial,
-                    aliases: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter((s) => s.length > 0),
-                  })
-                }
-                placeholder="es. acciaio speciale, special steel"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="custom-gwp">Fattore GWP (kg CO₂eq/kg) *</Label>
-                <Input
-                  id="custom-gwp"
-                  type="number"
-                  step="0.1"
-                  value={newMaterial.gwpFactor}
-                  onChange={(e) => setNewMaterial({ ...newMaterial, gwpFactor: Number.parseFloat(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="custom-unit">Unità</Label>
-                <Select
-                  value={newMaterial.unit}
-                  onValueChange={(value) => setNewMaterial({ ...newMaterial, unit: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="m³">m³</SelectItem>
-                    <SelectItem value="m²">m²</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="custom-description">Descrizione</Label>
-              <Textarea
-                id="custom-description"
-                value={newMaterial.description}
-                onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
-                placeholder="Descrizione del materiale"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddMaterialDialogOpen(false)}>
-              Annulla
-            </Button>
-            <Button onClick={() => handleAddCustomMaterial(editingIndex!)}>
-              <Save className="h-4 w-4 mr-2" />
-              Salva e Applica
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddMaterialDialog
+        isOpen={isAddMaterialDialogOpen}
+        onOpenChange={setIsAddMaterialDialogOpen}
+        newMaterial={newMaterial}
+        onMaterialChange={setNewMaterial}
+        onSave={handleAddCustomMaterial}
+      />
     </div>
   )
 }

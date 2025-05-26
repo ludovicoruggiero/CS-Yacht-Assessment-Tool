@@ -1,15 +1,16 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Ship, Eye, EyeOff, LogIn } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Ship, Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from "lucide-react"
 import { authService, type LoginCredentials } from "@/lib/auth"
+import { APP_CONFIG } from "@/lib/constants"
 
 interface LoginFormProps {
   onLoginSuccess: () => void
@@ -55,121 +56,216 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Ship className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Yacht GWP Calculator</h1>
-          </div>
-          <p className="text-gray-600">Sign in to access the Global Warming Potential calculation tool</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LogIn className="h-5 w-5" />
-              Sign In
-            </CardTitle>
-            <CardDescription>Enter your credentials to access the application</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={credentials.email}
-                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={credentials.password}
-                    onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Button>
+      <div className="relative flex items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left Side - Branding */}
+          <div className="hidden lg:block space-y-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+                  <Ship className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-900">{APP_CONFIG.name}</h1>
+                  <p className="text-slate-600">{APP_CONFIG.description}</p>
                 </div>
               </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 mb-3">Demo Credentials:</p>
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fillDemoCredentials("admin")}
-                  className="w-full text-left justify-start"
-                >
-                  <div>
-                    <div className="font-medium">Admin Access</div>
-                    <div className="text-xs text-gray-500">admin@yacht-gwp.com</div>
-                  </div>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fillDemoCredentials("user")}
-                  className="w-full text-left justify-start"
-                >
-                  <div>
-                    <div className="font-medium">User Access</div>
-                    <div className="text-xs text-gray-500">user@yacht-gwp.com</div>
-                  </div>
-                </Button>
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-slate-900">Advanced Maritime Environmental Assessment</h2>
+                <p className="text-slate-600 text-lg leading-relaxed">
+                  Streamline your GWP calculations with AI-powered material recognition, automated PCR categorization,
+                  and industry-standard benchmarking.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Password for both accounts: <code className="bg-gray-100 px-1 rounded">password123</code>
-              </p>
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Lightshipweight GWP Calculator v1.0</p>
-          <p>For maritime industry environmental assessment</p>
+            {/* Features */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Automated Processing</h3>
+                  <p className="text-sm text-slate-600">AI-powered material recognition from documentation</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">PCR Compliance</h3>
+                  <p className="text-sm text-slate-600">Automatic categorization per maritime standards</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-4 bg-white/50 backdrop-blur-sm rounded-lg border border-white/20">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Industry Benchmarks</h3>
+                  <p className="text-sm text-slate-600">Compare against maritime industry standards</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Login Form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
+            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="text-center pb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <LogIn className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-slate-900">Welcome Back</CardTitle>
+                <CardDescription className="text-slate-600">
+                  Sign in to access your GWP assessment dashboard
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-slate-700 font-medium">
+                      Email Address
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={credentials.email}
+                      onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                      className="h-11"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-slate-700 font-medium">
+                      Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={credentials.password}
+                        onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                        className="h-11 pr-10"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-slate-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-slate-400" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Signing in...
+                      </div>
+                    ) : (
+                      <>
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Sign In
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Demo Credentials */}
+                <div className="pt-6 border-t border-slate-200">
+                  <p className="text-sm font-medium text-slate-700 mb-4 text-center">Demo Access</p>
+                  <div className="space-y-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => fillDemoCredentials("admin")}
+                      className="w-full h-auto p-4 justify-start"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Shield className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900">Administrator</span>
+                            <Badge variant="default" className="text-xs">
+                              Full Access
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-slate-500">admin@yacht-gwp.com</div>
+                        </div>
+                      </div>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => fillDemoCredentials("user")}
+                      className="w-full h-auto p-4 justify-start"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <User className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900">Standard User</span>
+                            <Badge variant="secondary" className="text-xs">
+                              Calculator
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-slate-500">user@yacht-gwp.com</div>
+                        </div>
+                      </div>
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-600 text-center">
+                      Demo password: <code className="bg-slate-200 px-1 rounded text-slate-800">password123</code>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-6 text-center text-sm text-slate-500">
+              <p>
+                {APP_CONFIG.name} v{APP_CONFIG.version}
+              </p>
+              <p>Maritime Environmental Assessment Platform</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
