@@ -31,12 +31,12 @@ import { projectsService, type Project } from "@/lib/services/projects-service"
 import { notificationService } from "@/lib/services/notification-service"
 
 interface ProjectsListProps {
-  userId: string
+  userEmail: string
   onProjectSelect: (project: Project) => void
   onCreateNew: () => void
 }
 
-export default function ProjectsList({ userId, onProjectSelect, onCreateNew }: ProjectsListProps) {
+export default function ProjectsList({ userEmail, onProjectSelect, onCreateNew }: ProjectsListProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -52,7 +52,7 @@ export default function ProjectsList({ userId, onProjectSelect, onCreateNew }: P
   useEffect(() => {
     loadProjects()
     loadStats()
-  }, [userId])
+  }, [userEmail])
 
   useEffect(() => {
     filterProjects()
@@ -61,7 +61,7 @@ export default function ProjectsList({ userId, onProjectSelect, onCreateNew }: P
   const loadProjects = async () => {
     try {
       setIsLoading(true)
-      const userProjects = await projectsService.getUserProjects(userId)
+      const userProjects = await projectsService.getUserProjects(userEmail)
       setProjects(userProjects)
     } catch (error: any) {
       notificationService.error(error.message || "Failed to load projects")
@@ -72,7 +72,7 @@ export default function ProjectsList({ userId, onProjectSelect, onCreateNew }: P
 
   const loadStats = async () => {
     try {
-      const projectStats = await projectsService.getProjectStats(userId)
+      const projectStats = await projectsService.getProjectStats(userEmail)
       setStats(projectStats)
     } catch (error: any) {
       console.error("Failed to load stats:", error)

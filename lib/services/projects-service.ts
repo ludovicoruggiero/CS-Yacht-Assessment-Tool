@@ -10,7 +10,7 @@ export interface Project {
   shipyard?: string
   owner_name?: string
   status: "draft" | "processing" | "completed" | "archived"
-  user_id: string
+  user_email: string // Cambiato da user_id
   created_at: string
   updated_at: string
   completed_at?: string
@@ -38,12 +38,12 @@ export interface CreateProjectData {
 }
 
 export class ProjectsService {
-  async createProject(projectData: CreateProjectData, userId: string): Promise<Project> {
+  async createProject(projectData: CreateProjectData, userEmail: string): Promise<Project> {
     const { data, error } = await supabase
       .from("projects")
       .insert({
         ...projectData,
-        user_id: userId,
+        user_email: userEmail, // Usa email invece di user_id
         status: "draft",
         uploaded_files_count: 0,
         processed_materials_count: 0,
@@ -58,11 +58,11 @@ export class ProjectsService {
     return data
   }
 
-  async getUserProjects(userId: string): Promise<Project[]> {
+  async getUserProjects(userEmail: string): Promise<Project[]> {
     const { data, error } = await supabase
       .from("projects")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_email", userEmail)
       .order("updated_at", { ascending: false })
 
     if (error) {
@@ -127,11 +127,11 @@ export class ProjectsService {
     }
   }
 
-  async getRecentProjects(userId: string, limit = 5): Promise<Project[]> {
+  async getRecentProjects(userEmail: string, limit = 5): Promise<Project[]> {
     const { data, error } = await supabase
       .from("projects")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_email", userEmail)
       .order("updated_at", { ascending: false })
       .limit(limit)
 
@@ -142,13 +142,13 @@ export class ProjectsService {
     return data || []
   }
 
-  async getProjectStats(userId: string): Promise<{
+  async getProjectStats(userEmail: string): Promise<{
     total: number
     completed: number
     draft: number
     processing: number
   }> {
-    const { data, error } = await supabase.from("projects").select("status").eq("user_id", userId)
+    const { data, error } = await supabase.from("projects").select("status").eq("user_email", userEmail)
 
     if (error) {
       throw new Error(`Failed to fetch project stats: ${error.message}`)
@@ -168,6 +168,25 @@ export class ProjectsService {
     })
 
     return stats
+  }
+
+  async loadProjectProgress(projectId: string): Promise<{
+    currentStep: number
+    uploadedFiles: any[]
+    processedData: any
+    validatedData: any
+    gwpResults: any
+  } | null> {
+    const project = await this.getProject(projectId)
+    if (!project || !project.metadata) return null
+
+    return {
+      currentStep: project.metadata.currentStep || 1,
+      uploadedFiles: project.metadata.uploadedFiles || [],
+      processedData: project.metadata.processedData === "saved" ? "placeholder" : null,
+      validatedData: project.metadata.validatedData === "saved" ? "placeholder" : null,
+      gwpResults: project.metadata.gwpResults === "saved" ? project.results_summary : null,
+    }
   }
 }
 

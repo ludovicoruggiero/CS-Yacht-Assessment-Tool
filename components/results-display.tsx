@@ -12,14 +12,17 @@ import {
   PieChart,
   BarChart3,
   FileText,
-  Share2,
   CheckCircle,
   AlertTriangle,
   HelpCircle,
   Package,
   Target,
+  Save,
 } from "lucide-react"
 import type { GWPCalculation } from "@/lib/gwp-calculator"
+import { projectsService } from "@/lib/services/projects-service"
+import { useAppState } from "@/lib/services/app-state"
+import { notificationService } from "@/lib/services/notification-service"
 
 interface ResultsDisplayProps {
   gwpResults: GWPCalculation
@@ -28,6 +31,8 @@ interface ResultsDisplayProps {
 
 export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [isSaving, setIsSaving] = useState(false)
+  const { currentProject } = useAppState()
 
   // Add null check
   if (!gwpResults) {
@@ -42,6 +47,32 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
     )
   }
 
+  const handleSaveResults = async () => {
+    if (!currentProject) {
+      notificationService.error("No project selected")
+      return
+    }
+
+    try {
+      setIsSaving(true)
+
+      // Save results to project
+      await projectsService.updateProject(currentProject.id, {
+        status: "completed",
+        total_gwp: gwpResults.totalGWP,
+        gwp_per_tonne: gwpResults.gwpPerTonne,
+        results_summary: gwpResults,
+        completed_at: new Date().toISOString(),
+      })
+
+      notificationService.success("Results saved successfully!")
+    } catch (error: any) {
+      notificationService.error(error.message || "Failed to save results")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 1,
@@ -52,6 +83,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
   const downloadReport = () => {
     const reportData = {
       timestamp: new Date().toISOString(),
+      project: currentProject?.name || "Unknown Project",
       gwpResults: gwpResults,
     }
 
@@ -61,7 +93,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `gwp-report-${new Date().toISOString().split("T")[0]}.json`
+    a.download = `gwp-report-${currentProject?.name || "project"}-${new Date().toISOString().split("T")[0]}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -154,19 +186,29 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
         <div>
           <h2 className="text-2xl font-bold text-gray-900">GWP Calculation Results</h2>
           <p className="text-gray-600">Complete Global Warming Potential report with macro-group analysis</p>
+          {currentProject && <p className="text-sm text-gray-500 mt-1">Project: {currentProject.name}</p>}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={downloadReport}>
             <Download className="h-4 w-4 mr-2" />
             Download Report
           </Button>
-          <Button variant="outline">
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
+          <Button onClick={handleSaveResults} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Results
+              </>
+            )}
           </Button>
           <Button variant="outline" onClick={onReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            New Calculation
+            New Analysis
           </Button>
         </div>
       </div>

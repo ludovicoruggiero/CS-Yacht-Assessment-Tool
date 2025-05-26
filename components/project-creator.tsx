@@ -16,10 +16,10 @@ import { notificationService } from "@/lib/services/notification-service"
 
 interface ProjectCreatorProps {
   onProjectCreated: (project: any) => void
-  userId: string
+  userEmail: string
 }
 
-export default function ProjectCreator({ onProjectCreated, userId }: ProjectCreatorProps) {
+export default function ProjectCreator({ onProjectCreated, userEmail }: ProjectCreatorProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState<CreateProjectData>({
     name: "",
@@ -69,21 +69,19 @@ export default function ProjectCreator({ onProjectCreated, userId }: ProjectCrea
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted with data:", formData)
 
     if (!validateForm()) {
-      console.log("Validation failed:", errors)
       return
     }
 
     setIsCreating(true)
 
     try {
-      const project = await projectsService.createProject(formData, userId)
+      const project = await projectsService.createProject(formData, userEmail)
       notificationService.success("Project created successfully!")
       onProjectCreated(project)
     } catch (error: any) {
-      console.log("Error creating project:", error)
+      console.error("Project creation error:", error)
       notificationService.error(error.message || "Failed to create project")
     } finally {
       setIsCreating(false)
@@ -120,6 +118,10 @@ export default function ProjectCreator({ onProjectCreated, userId }: ProjectCrea
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === "development" && (
+              <div className="text-xs text-slate-500 mb-4">Debug: User Email = {userEmail}</div>
+            )}
             {/* Project Name */}
             <div>
               <Label htmlFor="name">Project Name *</Label>
@@ -232,12 +234,7 @@ export default function ProjectCreator({ onProjectCreated, userId }: ProjectCrea
 
             {/* Submit Button */}
             <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={isCreating}
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => console.log("Button clicked")}
-              >
+              <Button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
                 {isCreating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

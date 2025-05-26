@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -37,7 +37,7 @@ import { authService } from "@/lib/auth"
 import { useAppState } from "@/lib/services/app-state"
 import ProjectCreator from "@/components/project-creator"
 import ProjectsList from "@/components/projects-list"
-import { projectsService, type Project } from "@/lib/services/projects-service"
+import type { Project } from "@/lib/services/projects-service"
 
 export default function LightshipweightGWPTool() {
   const {
@@ -89,13 +89,6 @@ export default function LightshipweightGWPTool() {
   const handleFilesUploaded = (files: File[]) => {
     setUploadedFiles(files)
     setCurrentStep(2)
-    // Update project with file count
-    if (currentProject) {
-      projectsService.updateProjectAnalysisData(currentProject.id, {
-        uploaded_files_count: files.length,
-      })
-      projectsService.updateProjectStatus(currentProject.id, "processing")
-    }
   }
 
   const handleProjectCreated = (project: Project) => {
@@ -106,21 +99,20 @@ export default function LightshipweightGWPTool() {
 
   const handleProjectSelected = (project: Project) => {
     setCurrentProject(project)
-    // Determine step based on project status and data
-    if (project.status === "completed") {
+
+    // If project is completed, load results and go to step 5
+    if (project.status === "completed" && project.results_summary) {
+      setGWPResults(project.results_summary)
       setCurrentStep(5)
       setActiveView("calculator")
-    } else if (project.uploaded_files_count > 0) {
-      setCurrentStep(2)
-      setActiveView("calculator")
     } else {
+      // Otherwise start fresh analysis
       setCurrentStep(1)
       setActiveView("calculator")
     }
   }
 
   const handleCreateNewProject = () => {
-    console.log("Creating new project, setting activeView to create-project")
     setActiveView("create-project")
   }
 
@@ -235,9 +227,6 @@ export default function LightshipweightGWPTool() {
     return steps.find((s) => s.step === currentStep) || steps[0]
   }
 
-  console.log("Current activeView:", activeView)
-  console.log("Current user:", user?.id)
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar */}
@@ -322,44 +311,12 @@ export default function LightshipweightGWPTool() {
             </div>
           )}
         </nav>
-
-        {/* User Section */}
-        <div className="p-4 border-t border-slate-200">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
-              <span className="text-sm font-semibold text-slate-700">
-                {user.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">{user.fullName}</p>
-              <div className="flex items-center gap-2">
-                <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
-                  {user.role === "admin" ? "Administrator" : "User"}
-                </Badge>
-              </div>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="w-full justify-start text-slate-600 hover:text-red-600"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
       </div>
 
       {/* Main Content */}
       <div className={`transition-all duration-200 ${sidebarOpen ? "lg:ml-64" : ""}`}>
         {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 h-16">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 h-16">
           <div className="flex items-center justify-between h-full px-6">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden">
@@ -390,6 +347,28 @@ export default function LightshipweightGWPTool() {
               <Button variant="ghost" size="sm">
                 <Settings className="h-4 w-4" />
               </Button>
+
+              {/* User Section */}
+              <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-200">
+                <div className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-semibold text-slate-700">
+                    {user.fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </span>
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium text-slate-900">{user.fullName}</p>
+                  <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
+                    {user.role === "admin" ? "Administrator" : "User"}
+                  </Badge>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600 hover:text-red-600">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -408,11 +387,11 @@ export default function LightshipweightGWPTool() {
                     </h3>
                     <p className="text-blue-100 mb-4">Ready to analyze your maritime project's environmental impact?</p>
                     <Button
-                      onClick={() => setActiveView("calculator")}
+                      onClick={() => setActiveView("projects")}
                       className="bg-white text-blue-600 hover:bg-blue-50"
                     >
-                      <Calculator className="h-4 w-4 mr-2" />
-                      {currentStep === 1 ? "Start New Analysis" : "Continue Analysis"}
+                      <Ship className="h-4 w-4 mr-2" />
+                      Go to Projects
                     </Button>
                   </div>
                   <div className="hidden md:block">
@@ -445,76 +424,6 @@ export default function LightshipweightGWPTool() {
                     )
                   })}
                 </div>
-              )}
-
-              {/* Current Analysis Status */}
-              {(currentStep > 1 || uploadedFiles.length > 0) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Analysis Progress
-                    </CardTitle>
-                    <CardDescription>Track your environmental assessment progress</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Progress Steps */}
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        {[
-                          { step: 1, label: "Upload", icon: Upload, completed: currentStep >= 1 },
-                          { step: 2, label: "Processing", icon: Activity, completed: currentStep >= 2 },
-                          { step: 3, label: "Validation", icon: CheckCircle, completed: currentStep >= 3 },
-                          { step: 4, label: "Calculation", icon: Calculator, completed: currentStep >= 4 },
-                          { step: 5, label: "Results", icon: BarChart3, completed: currentStep >= 5 },
-                        ].map((item) => {
-                          const Icon = item.icon
-                          return (
-                            <div
-                              key={item.step}
-                              className={`p-4 rounded-lg border-2 transition-all ${
-                                item.completed
-                                  ? "border-green-200 bg-green-50"
-                                  : currentStep === item.step
-                                    ? "border-blue-200 bg-blue-50"
-                                    : "border-slate-200 bg-slate-50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    item.completed
-                                      ? "bg-green-100 text-green-600"
-                                      : currentStep === item.step
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-slate-100 text-slate-400"
-                                  }`}
-                                >
-                                  <Icon className="h-4 w-4" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                                  <p className="text-xs text-slate-500">Step {item.step}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Next Action */}
-                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900">{getCurrentStepInfo().label}</p>
-                          <p className="text-sm text-slate-600">{getCurrentStepInfo().description}</p>
-                        </div>
-                        <Button onClick={() => setActiveView("calculator")}>
-                          {currentStep === 5 ? "View Results" : "Continue"}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
 
               {/* Features Overview */}
@@ -558,17 +467,14 @@ export default function LightshipweightGWPTool() {
 
           {activeView === "projects" && (
             <ProjectsList
-              userId={user.id}
+              userEmail={user.email}
               onProjectSelect={handleProjectSelected}
               onCreateNew={handleCreateNewProject}
             />
           )}
 
           {activeView === "create-project" && (
-            <>
-              {console.log("Rendering ProjectCreator component")}
-              <ProjectCreator onProjectCreated={handleProjectCreated} userId={user.id} />
-            </>
+            <ProjectCreator onProjectCreated={handleProjectCreated} userEmail={user.email} />
           )}
 
           {activeView === "calculator" && !currentProject && (
@@ -585,51 +491,59 @@ export default function LightshipweightGWPTool() {
 
           {activeView === "calculator" && currentProject && (
             <div className="space-y-6">
-              {/* Calculator Steps Navigation */}
+              {/* Project Info */}
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Analysis Workflow</h3>
-                    <Badge variant="outline">Step {currentStep} of 5</Badge>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">{currentProject.name}</h3>
+                      <p className="text-sm text-slate-600">{currentProject.description}</p>
+                    </div>
+                    <Badge variant={currentProject.status === "completed" ? "default" : "secondary"}>
+                      {currentProject.status === "completed" ? "Completed" : "Draft"}
+                    </Badge>
                   </div>
-                  <div className="grid grid-cols-5 gap-4">
-                    {[
-                      { step: 1, label: "Upload", icon: Upload },
-                      { step: 2, label: "Processing", icon: Activity },
-                      { step: 3, label: "Validation", icon: CheckCircle },
-                      { step: 4, label: "Calculation", icon: Calculator },
-                      { step: 5, label: "Results", icon: BarChart3 },
-                    ].map((item) => {
-                      const Icon = item.icon
-                      const isActive = currentStep === item.step
-                      const isCompleted = currentStep > item.step
-                      return (
-                        <div
-                          key={item.step}
-                          className={`flex flex-col items-center p-3 rounded-lg transition-all ${
-                            isActive
-                              ? "bg-blue-50 border border-blue-200"
-                              : isCompleted
-                                ? "bg-green-50 border border-green-200"
-                                : "bg-slate-50 border border-slate-200"
-                          }`}
-                        >
+
+                  {currentProject.status !== "completed" && (
+                    <div className="grid grid-cols-5 gap-4">
+                      {[
+                        { step: 1, label: "Upload", icon: Upload },
+                        { step: 2, label: "Processing", icon: Activity },
+                        { step: 3, label: "Validation", icon: CheckCircle },
+                        { step: 4, label: "Calculation", icon: Calculator },
+                        { step: 5, label: "Results", icon: BarChart3 },
+                      ].map((item) => {
+                        const Icon = item.icon
+                        const isActive = currentStep === item.step
+                        const isCompleted = currentStep > item.step
+                        return (
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                            key={item.step}
+                            className={`flex flex-col items-center p-3 rounded-lg transition-all ${
                               isActive
-                                ? "bg-blue-100 text-blue-600"
+                                ? "bg-blue-50 border border-blue-200"
                                 : isCompleted
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-slate-100 text-slate-400"
+                                  ? "bg-green-50 border border-green-200"
+                                  : "bg-slate-50 border border-slate-200"
                             }`}
                           >
-                            <Icon className="h-4 w-4" />
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                                isActive
+                                  ? "bg-blue-100 text-blue-600"
+                                  : isCompleted
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-slate-100 text-slate-400"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <span className="text-sm font-medium text-slate-900">{item.label}</span>
                           </div>
-                          <span className="text-sm font-medium text-slate-900">{item.label}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
