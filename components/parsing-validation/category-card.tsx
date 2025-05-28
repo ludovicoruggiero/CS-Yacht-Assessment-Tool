@@ -69,7 +69,7 @@ export function CategoryCard({
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-blue-600">{(totalWeight / 1000).toFixed(1)}t</p>
-                <p className="text-sm text-gray-600">{categoryData.materials.length} materiali</p>
+                <p className="text-sm text-gray-600">{categoryData.materials.length} materials</p>
               </div>
             </div>
           </CardHeader>

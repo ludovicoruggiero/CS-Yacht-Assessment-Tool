@@ -56,7 +56,7 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       const materials = await materialsDb.getAllMaterials()
       setAvailableMaterials(materials)
     } catch (error: any) {
-      notificationService.error(error.message || "Errore nel caricamento materiali")
+      notificationService.error(error.message || "Error loading materials")
     } finally {
       setIsLoadingMaterials(false)
     }
@@ -160,9 +160,9 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
       resetNewMaterial()
       setIsAddMaterialDialogOpen(false)
       setEditingIndex(null)
-      notificationService.success("Materiale personalizzato aggiunto con successo")
+      notificationService.success("Custom material added successfully")
     } catch (error: any) {
-      notificationService.error(error.message || "Errore nell'aggiunta del materiale personalizzato")
+      notificationService.error(error.message || "Error adding custom material")
     }
   }
 
@@ -328,11 +328,9 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5" />
-            Validazione Parsing Materiali e Macrogruppi PCR
+            Material Parsing and PCR Macro-groups Validation
           </CardTitle>
-          <CardDescription>
-            Verifica e correggi i materiali identificati organizzati per macrogruppi PCR.
-          </CardDescription>
+          <CardDescription>Verify and correct identified materials organized by PCR macro-groups.</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Statistiche */}
@@ -343,8 +341,8 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
             <Alert className="mb-4">
               <Package className="h-4 w-4" />
               <AlertDescription>
-                <strong>Attenzione:</strong> {stats.total - stats.categorized} materiali non sono stati assegnati a un
-                macrogruppo PCR. Assegnali manualmente per un'analisi completa per categoria.
+                <strong>Warning:</strong> {stats.total - stats.categorized} materials have not been assigned to a PCR
+                macro-group. Assign them manually for complete category analysis.
               </AlertDescription>
             </Alert>
           )}
@@ -355,7 +353,7 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Cerca materiali..."
+                  placeholder="Search materials..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -367,12 +365,12 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tutti i materiali</SelectItem>
-                <SelectItem value="identified">Solo identificati</SelectItem>
-                <SelectItem value="unidentified">Non identificati</SelectItem>
-                <SelectItem value="uncategorized">Senza macrogruppo</SelectItem>
-                <SelectItem value="low_confidence">Bassa confidenza</SelectItem>
-                <SelectItem value="user_modified">Modificati dall'utente</SelectItem>
+                <SelectItem value="all">All materials</SelectItem>
+                <SelectItem value="identified">Identified only</SelectItem>
+                <SelectItem value="unidentified">Unidentified</SelectItem>
+                <SelectItem value="uncategorized">Without macro-group</SelectItem>
+                <SelectItem value="low_confidence">Low confidence</SelectItem>
+                <SelectItem value="user_modified">User modified</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -409,12 +407,12 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
           {/* Pulsante di completamento */}
           <div className="flex justify-between items-center mt-6">
             <div className="text-sm text-gray-600">
-              Progresso: {stats.validated}/{stats.total} materiali validati | {stats.categorized}/{stats.total}{" "}
-              categorizzati PCR
+              Progress: {stats.validated}/{stats.total} materials validated | {stats.categorized}/{stats.total} PCR
+              categorized
             </div>
             <Button onClick={handleComplete} size="lg" disabled={stats.validated < stats.total * 0.8}>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Conferma e Procedi al Calcolo GWP
+              Confirm and Proceed to GWP Calculation
             </Button>
           </div>
         </CardContent>

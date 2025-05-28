@@ -16,31 +16,31 @@ export function MaterialStats({ stats }: MaterialStatsProps) {
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-          <p className="text-sm text-gray-600">Materiali Totali</p>
+          <p className="text-sm text-gray-600">Total Materials</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-green-600">{stats.identified}</p>
-          <p className="text-sm text-gray-600">Identificati</p>
+          <p className="text-sm text-gray-600">Identified</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-orange-600">{stats.categorized}</p>
-          <p className="text-sm text-gray-600">Categorizzati PCR</p>
+          <p className="text-sm text-gray-600">PCR Categorized</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-purple-600">{stats.validated}</p>
-          <p className="text-sm text-gray-600">Validati</p>
+          <p className="text-sm text-gray-600">Validated</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-red-600">{stats.userModified}</p>
-          <p className="text-sm text-gray-600">Modificati</p>
+          <p className="text-sm text-gray-600">Modified</p>
         </CardContent>
       </Card>
     </div>

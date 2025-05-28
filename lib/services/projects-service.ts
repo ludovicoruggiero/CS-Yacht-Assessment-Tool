@@ -10,7 +10,7 @@ export interface Project {
   shipyard?: string
   owner_name?: string
   status: "draft" | "processing" | "completed" | "archived"
-  user_email: string // Cambiato da user_id
+  user_email: string // Changed from user_id
   created_at: string
   updated_at: string
   completed_at?: string
@@ -43,7 +43,7 @@ export class ProjectsService {
       .from("projects")
       .insert({
         ...projectData,
-        user_email: userEmail, // Usa email invece di user_id
+        user_email: userEmail, // Use email instead of user_id
         status: "draft",
         uploaded_files_count: 0,
         processed_materials_count: 0,

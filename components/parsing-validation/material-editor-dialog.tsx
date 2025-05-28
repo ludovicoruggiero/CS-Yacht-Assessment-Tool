@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Edit, Plus, Save, Check, Search, X } from "lucide-react"
+import { Edit, Plus, Search, X } from "lucide-react"
 import type { Material } from "@/lib/materials-database-supabase"
 
 interface ValidationMaterial {
@@ -59,10 +59,16 @@ export function MaterialEditorDialog({
 
   const handleSave = () => {
     if (temporarySelectedMaterial) {
+      // 🚀 IMMEDIATE UI UPDATE - No waiting!
       onMaterialSelection(globalIndex, temporarySelectedMaterial)
+
+      // Close dialog instantly
+      setIsOpen(false)
+      setTemporarySelectedMaterial(null)
+
+      // Optional: Show success notification immediately
+      // notificationService.success('Material updated successfully!')
     }
-    setIsOpen(false)
-    setTemporarySelectedMaterial(null)
   }
 
   const handleCancel = () => {
@@ -104,10 +110,8 @@ export function MaterialEditorDialog({
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Modifica Materiale</DialogTitle>
-          <DialogDescription>
-            Seleziona un materiale dalla lista e clicca Salva per applicare le modifiche
-          </DialogDescription>
+          <DialogTitle>Edit Material</DialogTitle>
+          <DialogDescription>Select a material from the list and click Save to apply changes</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
@@ -115,12 +119,12 @@ export function MaterialEditorDialog({
             {/* Left Panel - Current Material Info */}
             <div className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">Testo originale:</Label>
+                <Label className="text-sm font-medium">Original text:</Label>
                 <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-md border mt-1">{material.originalText}</p>
               </div>
 
               <div>
-                <Label className="text-sm font-medium">Materiale attuale:</Label>
+                <Label className="text-sm font-medium">Current material:</Label>
                 <div className="mt-1 p-3 bg-blue-50 rounded-md border border-blue-200">
                   {material.material ? (
                     <div>
@@ -131,7 +135,7 @@ export function MaterialEditorDialog({
                       <div className="text-xs text-blue-600 mt-1">{material.material.gwpFactor} kg CO₂eq/kg</div>
                     </div>
                   ) : (
-                    <span className="text-gray-500 italic">Nessun materiale assegnato</span>
+                    <span className="text-gray-500 italic">No material assigned</span>
                   )}
                 </div>
               </div>
@@ -139,7 +143,7 @@ export function MaterialEditorDialog({
               {/* Temporary selection preview */}
               {temporarySelectedMaterial && temporarySelectedMaterial !== material.material && (
                 <div>
-                  <Label className="text-sm font-medium">Nuovo materiale selezionato:</Label>
+                  <Label className="text-sm font-medium">New material selected:</Label>
                   <div className="mt-1 p-3 bg-green-50 rounded-md border border-green-200">
                     <div className="font-medium text-green-700">{temporarySelectedMaterial.name}</div>
                     <Badge variant="secondary" className="mt-1 text-xs">
@@ -154,7 +158,7 @@ export function MaterialEditorDialog({
               <div className="border-t pt-4">
                 <Button variant="outline" onClick={() => onAddMaterial(globalIndex)} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
-                  Aggiungi Nuovo Materiale
+                  Add New Material
                 </Button>
               </div>
             </div>
@@ -164,11 +168,11 @@ export function MaterialEditorDialog({
               <div className="space-y-4 mb-4">
                 {/* Search */}
                 <div>
-                  <Label className="text-sm font-medium">Cerca materiali:</Label>
+                  <Label className="text-sm font-medium">Search materials:</Label>
                   <div className="relative mt-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Cerca per nome, categoria o alias..."
+                      placeholder="Search by name, category or alias..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 pr-10"
@@ -178,9 +182,9 @@ export function MaterialEditorDialog({
                         variant="ghost"
                         size="sm"
                         onClick={() => setSearchTerm("")}
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -188,13 +192,13 @@ export function MaterialEditorDialog({
 
                 {/* Category Filter */}
                 <div>
-                  <Label className="text-sm font-medium">Filtra per categoria:</Label>
+                  <Label className="text-sm font-medium">Filter by category:</Label>
                   <Select value={selectedMaterialCategory} onValueChange={setSelectedMaterialCategory}>
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Tutte le categorie" />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tutte le categorie</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
                       {Array.from(new Set(availableMaterials.map((m) => m.category))).map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
@@ -204,93 +208,34 @@ export function MaterialEditorDialog({
                   </Select>
                 </div>
 
-                {/* Results count */}
-                <div className="text-sm text-gray-600">
-                  {filteredMaterials.length} materiali trovati
-                  {searchTerm && ` per "${searchTerm}"`}
-                  {selectedMaterialCategory !== "all" && ` in ${selectedMaterialCategory}`}
-                </div>
-              </div>
-
-              {/* Materials List */}
-              <div className="flex-1 min-h-0">
-                <Label className="text-sm font-medium">Materiali disponibili:</Label>
-                <div className="mt-1 border rounded-md h-96 overflow-y-auto">
-                  {isLoadingMaterials ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                      <span className="ml-2">Caricamento materiali...</span>
+                {/* Material List */}
+                <div className="flex-1 overflow-y-auto">
+                  {filteredMaterials.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`p-3 rounded-md border ${
+                        temporarySelectedMaterial?.id === m.id ? "bg-green-50 border-green-200" : "bg-white"
+                      } cursor-pointer hover:bg-gray-100`}
+                      onClick={() => setTemporarySelectedMaterial(m)}
+                    >
+                      <div className="font-medium">{m.name}</div>
+                      <Badge variant="secondary" className="mt-1 text-xs">
+                        {m.category}
+                      </Badge>
+                      <div className="text-xs mt-1">{m.gwpFactor} kg CO₂eq/kg</div>
                     </div>
-                  ) : filteredMaterials.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="text-center">
-                        <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p>Nessun materiale trovato</p>
-                        {searchTerm && <p className="text-sm">Prova a modificare i criteri di ricerca</p>}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-2 space-y-1">
-                      {filteredMaterials.map((dbMaterial) => {
-                        const isSelected = temporarySelectedMaterial?.id === dbMaterial.id
-                        const isCurrent = material.material?.id === dbMaterial.id
-
-                        return (
-                          <Button
-                            key={dbMaterial.id}
-                            variant={isSelected ? "default" : "ghost"}
-                            className={`w-full justify-start text-left h-auto p-3 ${
-                              isCurrent ? "bg-blue-50 border border-blue-200" : ""
-                            }`}
-                            onClick={() => setTemporarySelectedMaterial(dbMaterial)}
-                          >
-                            <div className="flex items-start w-full">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-medium truncate">{dbMaterial.name}</span>
-                                  {isCurrent && (
-                                    <Badge variant="outline" className="text-xs">
-                                      attuale
-                                    </Badge>
-                                  )}
-                                  {isSelected && <Check className="h-4 w-4 text-white flex-shrink-0" />}
-                                </div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {dbMaterial.category}
-                                  </Badge>
-                                  <span className="text-xs text-gray-600">{dbMaterial.gwpFactor} kg CO₂eq/kg</span>
-                                </div>
-                                {dbMaterial.aliases.length > 0 && (
-                                  <div className="text-xs text-gray-500 truncate">
-                                    Alias: {dbMaterial.aliases.slice(0, 3).join(", ")}
-                                    {dbMaterial.aliases.length > 3 && "..."}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Button>
-                        )
-                      })}
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Annulla
+            Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!temporarySelectedMaterial || temporarySelectedMaterial === material.material}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Salva Modifiche
-          </Button>
+          <Button onClick={handleSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

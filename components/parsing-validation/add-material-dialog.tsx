@@ -36,28 +36,28 @@ export function AddMaterialDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Aggiungi Materiale Personalizzato</DialogTitle>
-          <DialogDescription>Crea un nuovo materiale per questo elemento non identificato</DialogDescription>
+          <DialogTitle>Add Custom Material</DialogTitle>
+          <DialogDescription>Create a new material for this unidentified element</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="custom-name">Nome Materiale *</Label>
+              <Label htmlFor="custom-name">Material Name *</Label>
               <Input
                 id="custom-name"
                 value={newMaterial.name || ""}
                 onChange={(e) => onMaterialChange({ ...newMaterial, name: e.target.value })}
-                placeholder="es. Acciaio speciale"
+                placeholder="e.g. Special Steel"
               />
             </div>
             <div>
-              <Label htmlFor="custom-category">Categoria *</Label>
+              <Label htmlFor="custom-category">Category *</Label>
               <Select
                 value={newMaterial.category || ""}
                 onValueChange={(value) => onMaterialChange({ ...newMaterial, category: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleziona categoria" />
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_CATEGORIES.map((category) => (
@@ -70,7 +70,7 @@ export function AddMaterialDialog({
             </div>
           </div>
           <div>
-            <Label htmlFor="custom-aliases">Alias (separati da virgola)</Label>
+            <Label htmlFor="custom-aliases">Aliases (comma separated)</Label>
             <Input
               id="custom-aliases"
               value={newMaterial.aliases?.join(", ") || ""}
@@ -83,12 +83,12 @@ export function AddMaterialDialog({
                     .filter((s) => s.length > 0),
                 })
               }
-              placeholder="es. acciaio speciale, special steel"
+              placeholder="e.g. special steel, stainless steel"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="custom-gwp">Fattore GWP (kg CO₂eq/kg) *</Label>
+              <Label htmlFor="custom-gwp">GWP Factor (kg CO₂eq/kg) *</Label>
               <Input
                 id="custom-gwp"
                 type="number"
@@ -98,7 +98,7 @@ export function AddMaterialDialog({
               />
             </div>
             <div>
-              <Label htmlFor="custom-unit">Unità</Label>
+              <Label htmlFor="custom-unit">Unit</Label>
               <Select
                 value={newMaterial.unit || "kg"}
                 onValueChange={(value) => onMaterialChange({ ...newMaterial, unit: value })}
@@ -115,22 +115,22 @@ export function AddMaterialDialog({
             </div>
           </div>
           <div>
-            <Label htmlFor="custom-description">Descrizione</Label>
+            <Label htmlFor="custom-description">Description</Label>
             <Textarea
               id="custom-description"
               value={newMaterial.description || ""}
               onChange={(e) => onMaterialChange({ ...newMaterial, description: e.target.value })}
-              placeholder="Descrizione del materiale"
+              placeholder="Material description"
             />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annulla
+            Cancel
           </Button>
           <Button onClick={onSave}>
             <Save className="h-4 w-4 mr-2" />
-            Salva e Applica
+            Save and Apply
           </Button>
         </DialogFooter>
       </DialogContent>

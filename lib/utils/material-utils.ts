@@ -9,15 +9,15 @@ export function validateMaterial(material: Partial<Material>): MaterialValidatio
   const errors: string[] = []
 
   if (!material.name?.trim()) {
-    errors.push("Nome materiale richiesto")
+    errors.push("Material name required")
   }
 
   if (!material.category?.trim()) {
-    errors.push("Categoria richiesta")
+    errors.push("Category required")
   }
 
   if (!material.gwpFactor || material.gwpFactor <= 0) {
-    errors.push("Fattore GWP deve essere maggiore di 0")
+    errors.push("GWP factor must be greater than 0")
   }
 
   return {

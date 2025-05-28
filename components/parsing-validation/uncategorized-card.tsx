@@ -31,9 +31,9 @@ export function UncategorizedCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-yellow-600">
           <Package className="h-5 w-5" />
-          Materiali Non Categorizzati ({uncategorized.length})
+          Uncategorized Materials ({uncategorized.length})
         </CardTitle>
-        <CardDescription>Questi materiali non sono stati assegnati a un macrogruppo PCR</CardDescription>
+        <CardDescription>These materials have not been assigned to a PCR macro-group</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -53,7 +53,7 @@ export function UncategorizedCard({
                         }}
                       >
                         <SelectTrigger className="w-64 h-6 text-xs">
-                          <SelectValue placeholder="Assegna macrogruppo PCR" />
+                          <SelectValue placeholder="Assign PCR macro-group" />
                         </SelectTrigger>
                         <SelectContent>
                           {allCategories.map((category) => (

@@ -51,7 +51,7 @@ export function MaterialItem({
               </Badge>
             ) : (
               <Badge variant="destructive" className="text-xs">
-                Non identificato
+                Not identified
               </Badge>
             )}
             <div className="flex items-center gap-1">
@@ -69,7 +69,7 @@ export function MaterialItem({
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Label className="text-xs">Peso (t):</Label>
+              <Label className="text-xs">Weight (t):</Label>
               <Input
                 type="number"
                 step="0.1"

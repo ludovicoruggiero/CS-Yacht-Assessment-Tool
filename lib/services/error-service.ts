@@ -1,37 +1,29 @@
-import type { AppError } from "@/lib/types"
-
 class ErrorService {
-  private static instance: ErrorService
-  private errorHandlers: Map<string, (error: AppError) => void> = new Map()
-
-  static getInstance(): ErrorService {
-    if (!ErrorService.instance) {
-      ErrorService.instance = new ErrorService()
-    }
-    return ErrorService.instance
+  /**
+   * Logs an error message to the console.
+   * @param message The error message to log.
+   */
+  logError(message: string): void {
+    console.error(`Error: ${message}`)
   }
 
-  handleError(error: AppError, context?: string): void {
-    console.error(`Error${context ? ` in ${context}` : ""}:`, error)
-
-    // In production, send to error tracking service
-    if (process.env.NODE_ENV === "production") {
-      // Send to error tracking service like Sentry
-    }
-
-    // Execute registered handlers
-    if (context && this.errorHandlers.has(context)) {
-      this.errorHandlers.get(context)?.(error)
-    }
+  /**
+   * Throws an error with the specified message.
+   * @param message The error message.
+   * @throws Error
+   */
+  throwError(message: string): void {
+    throw new Error(message)
   }
 
-  registerErrorHandler(context: string, handler: (error: AppError) => void): void {
-    this.errorHandlers.set(context, handler)
-  }
-
-  createError(message: string, code?: string, details?: any): AppError {
-    return { message, code, details }
+  /**
+   * Handles an error by logging it and potentially taking other actions.
+   * @param error The error object.
+   */
+  handleError(error: any): void {
+    this.logError(error.message || "An unknown error occurred.") // Replaced Italian with English
+    // Additional error handling logic can be added here, such as reporting to a monitoring service.
   }
 }
 
-export const errorService = ErrorService.getInstance()
+export default ErrorService

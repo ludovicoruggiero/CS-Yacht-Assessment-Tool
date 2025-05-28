@@ -18,11 +18,11 @@ export class MaterialsDatabase {
   private readonly CACHE_DURATION = CACHE_DURATIONS.MATERIALS
 
   constructor() {
-    // Carica i dati iniziali
+    // Load initial data
     this.loadMaterials()
   }
 
-  // Converte da formato database a formato applicazione
+  // Convert from database format to application format
   private dbToMaterial(dbMaterial: DatabaseMaterial): Material {
     return {
       id: dbMaterial.id,
@@ -36,7 +36,7 @@ export class MaterialsDatabase {
     }
   }
 
-  // Converte da formato applicazione a formato database
+  // Convert from application format to database format
   private materialToDb(material: Material): Omit<DatabaseMaterial, "created_at" | "updated_at"> {
     return {
       id: material.id,
@@ -50,13 +50,13 @@ export class MaterialsDatabase {
     }
   }
 
-  // Carica materiali da Supabase
+  // Load materials from Supabase
   private async loadMaterials(): Promise<void> {
     try {
       const { data, error } = await supabase.from("materials").select("*").order("name")
 
       if (error) {
-        console.error("Errore nel caricamento materiali:", error)
+        console.error("Error loading materials:", error)
         return
       }
 
@@ -65,16 +65,16 @@ export class MaterialsDatabase {
         this.lastFetch = Date.now()
       }
     } catch (error) {
-      console.error("Errore nella connessione a Supabase:", error)
+      console.error("Error connecting to Supabase:", error)
     }
   }
 
-  // Verifica se la cache è valida
+  // Check if cache is valid
   private isCacheValid(): boolean {
     return Date.now() - this.lastFetch < this.CACHE_DURATION
   }
 
-  // Ottieni tutti i materiali
+  // Get all materials
   async getAllMaterials(): Promise<Material[]> {
     if (!this.isCacheValid()) {
       await this.loadMaterials()
@@ -82,7 +82,7 @@ export class MaterialsDatabase {
     return [...this.cache]
   }
 
-  // Cerca materiale per nome o alias
+  // Search material by name or alias
   async findMaterial(searchTerm: string): Promise<Material | null> {
     const materials = await this.getAllMaterials()
     const term = searchTerm.toLowerCase().trim()
@@ -96,13 +96,13 @@ export class MaterialsDatabase {
     )
   }
 
-  // Cerca materiali per categoria
+  // Search materials by category
   async getMaterialsByCategory(category: string): Promise<Material[]> {
     const materials = await this.getAllMaterials()
     return materials.filter((material) => material.category.toLowerCase() === category.toLowerCase())
   }
 
-  // Aggiungi nuovo materiale
+  // Add new material
   async addMaterial(material: Material): Promise<boolean> {
     try {
       const dbMaterial = this.materialToDb(material)
@@ -110,29 +110,29 @@ export class MaterialsDatabase {
       const { error } = await supabase.from("materials").insert([dbMaterial])
 
       if (error) {
-        console.error("Errore nell'aggiunta del materiale:", error)
+        console.error("Error adding material:", error)
         return false
       }
 
-      // Aggiorna la cache
+      // Update cache
       this.cache.push(material)
       return true
     } catch (error) {
-      console.error("Errore nell'aggiunta del materiale:", error)
+      console.error("Error adding material:", error)
       return false
     }
   }
 
-  // Aggiorna materiale esistente
+  // Update existing material
   async updateMaterial(id: string, updates: Partial<Material>): Promise<boolean> {
     try {
-      // Trova il materiale esistente
+      // Find existing material
       const existingMaterial = this.cache.find((m) => m.id === id)
       if (!existingMaterial) {
         return false
       }
 
-      // Crea il materiale aggiornato
+      // Create updated material
       const updatedMaterial = { ...existingMaterial, ...updates }
       const dbUpdates = this.materialToDb(updatedMaterial)
 
@@ -145,11 +145,11 @@ export class MaterialsDatabase {
         .eq("id", id)
 
       if (error) {
-        console.error("Errore nell'aggiornamento del materiale:", error)
+        console.error("Error updating material:", error)
         return false
       }
 
-      // Aggiorna la cache
+      // Update cache
       const index = this.cache.findIndex((m) => m.id === id)
       if (index !== -1) {
         this.cache[index] = updatedMaterial
@@ -157,58 +157,58 @@ export class MaterialsDatabase {
 
       return true
     } catch (error) {
-      console.error("Errore nell'aggiornamento del materiale:", error)
+      console.error("Error updating material:", error)
       return false
     }
   }
 
-  // Rimuovi materiale
+  // Remove material
   async removeMaterial(id: string): Promise<boolean> {
     try {
       const { error } = await supabase.from("materials").delete().eq("id", id)
 
       if (error) {
-        console.error("Errore nella rimozione del materiale:", error)
+        console.error("Error removing material:", error)
         return false
       }
 
-      // Aggiorna la cache
+      // Update cache
       this.cache = this.cache.filter((m) => m.id !== id)
       return true
     } catch (error) {
-      console.error("Errore nella rimozione del materiale:", error)
+      console.error("Error removing material:", error)
       return false
     }
   }
 
-  // Cancella tutti i materiali
+  // Clear all materials
   async clearAllMaterials(): Promise<boolean> {
     try {
-      const { error } = await supabase.from("materials").delete().neq("id", "") // Elimina tutti i record
+      const { error } = await supabase.from("materials").delete().neq("id", "") // Delete all records
 
       if (error) {
-        console.error("Errore nella cancellazione di tutti i materiali:", error)
+        console.error("Error clearing all materials:", error)
         return false
       }
 
-      // Svuota la cache
+      // Empty cache
       this.cache = []
       return true
     } catch (error) {
-      console.error("Errore nella cancellazione di tutti i materiali:", error)
+      console.error("Error clearing all materials:", error)
       return false
     }
   }
 
-  // Importa materiali da array
+  // Import materials from array
   async importMaterials(materials: Material[]): Promise<number> {
     let importedCount = 0
 
     for (const material of materials) {
       try {
-        // Valida che il materiale abbia i campi essenziali
+        // Validate that material has essential fields
         if (material.name && material.category && typeof material.gwpFactor === "number") {
-          // Assicurati che abbia un ID unico
+          // Ensure it has a unique ID
           const materialWithId = {
             ...material,
             id: material.id || `imported_${Date.now()}_${importedCount}`,
@@ -220,25 +220,25 @@ export class MaterialsDatabase {
           }
         }
       } catch (error) {
-        console.warn("Materiale saltato per errore:", material, error)
+        console.warn("Material skipped due to error:", material, error)
       }
     }
 
     return importedCount
   }
 
-  // Esporta tutti i materiali
+  // Export all materials
   async exportMaterials(): Promise<Material[]> {
     return await this.getAllMaterials()
   }
 
-  // Forza il refresh della cache
+  // Force cache refresh
   async refreshCache(): Promise<void> {
     this.lastFetch = 0
     await this.loadMaterials()
   }
 
-  // Ottieni statistiche del database
+  // Get database statistics
   async getStats(): Promise<{
     totalMaterials: number
     categories: string[]
