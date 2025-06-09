@@ -1,4 +1,4 @@
-# Creare tool online
+# CS Yacht Assessment Tool
 
 *Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
