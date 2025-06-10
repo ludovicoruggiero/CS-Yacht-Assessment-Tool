@@ -72,15 +72,15 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   alt="Pelagos Core"
                   width={200}
                   height={40}
-                  className="h-10 w-auto"
+                  className="h-8 w-auto"
                 />
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-slate-900 font-maven">
-                  Advanced Maritime Environmental Assessment
+                <h2 className="text-lg font-semibold text-slate-900 font-maven">
+                  AI-powered LCA for the Yachting Industry
                 </h2>
-                <p className="text-slate-600 text-lg leading-relaxed font-maven">
+                <p className="text-slate-600 text-base leading-relaxed font-maven">
                   Streamline your GWP calculations with AI-powered material recognition, automated PCR categorization,
                   and industry-standard benchmarking.
                 </p>
