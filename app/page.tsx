@@ -38,6 +38,7 @@ import { useAppState } from "@/lib/services/app-state"
 import ProjectCreator from "@/components/project-creator"
 import ProjectsList from "@/components/projects-list"
 import type { Project } from "@/lib/services/projects-service"
+import Image from "next/image"
 
 export default function LightshipweightGWPTool() {
   const {
@@ -237,14 +238,8 @@ export default function LightshipweightGWPTool() {
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <Ship className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-slate-900">GWP Calculator</h1>
-              <p className="text-xs text-slate-500">Maritime Assessment</p>
-            </div>
+          <div className="flex items-center">
+            <Image src="/pelagos-core-logo.svg" alt="Pelagos Core" width={140} height={28} className="h-7 w-auto" />
           </div>
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)} className="lg:hidden">
             <X className="h-4 w-4" />

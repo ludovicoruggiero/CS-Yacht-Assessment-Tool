@@ -29,6 +29,9 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Maven Pro font family */
+    --font-maven-pro: "Maven Pro", sans-serif;
   }
 
   .dark {
@@ -63,8 +66,67 @@
   * {
     @apply border-border;
   }
+
+  html {
+    font-family: var(--font-maven-pro), system-ui, sans-serif;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-maven-pro), system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Ensure all headings use Maven Pro */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-maven-pro), system-ui, sans-serif;
+    font-weight: 600;
+  }
+
+  /* Ensure all text elements use Maven Pro */
+  p,
+  span,
+  div,
+  label,
+  input,
+  textarea,
+  button,
+  select {
+    font-family: var(--font-maven-pro), system-ui, sans-serif;
+  }
+
+  /* Specific font weights for better typography */
+  .font-light {
+    font-weight: 300;
+  }
+
+  .font-normal {
+    font-weight: 400;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .font-semibold {
+    font-weight: 600;
+  }
+
+  .font-bold {
+    font-weight: 700;
+  }
+
+  .font-extrabold {
+    font-weight: 800;
+  }
+
+  .font-black {
+    font-weight: 900;
   }
 }
 
@@ -116,4 +178,16 @@
   z-index: 50;
   animation-duration: 200ms !important;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Ensure Maven Pro is used in all UI components */
+.ui-component,
+[data-radix-root],
+[data-radix-portal] {
+  font-family: var(--font-maven-pro), system-ui, sans-serif;
+}
+
+/* Override any default fonts in shadcn components */
+.shadcn-override * {
+  font-family: var(--font-maven-pro), system-ui, sans-serif !important;
 }

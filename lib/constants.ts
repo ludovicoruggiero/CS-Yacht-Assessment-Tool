@@ -1,6 +1,6 @@
 // Application constants
 export const APP_CONFIG = {
-  name: "Lightshipweight GWP Calculator",
+  name: "Pelagos Core",
   version: "1.0",
   description: "Maritime Environmental Assessment Tool",
 } as const

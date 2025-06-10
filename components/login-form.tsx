@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Ship, Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from "lucide-react"
+import { Eye, EyeOff, LogIn, Shield, User, Zap, TrendingUp } from "lucide-react"
 import { authService, type LoginCredentials } from "@/lib/auth"
 import { APP_CONFIG } from "@/lib/constants"
+import Image from "next/image"
 
 interface LoginFormProps {
   onLoginSuccess: () => void
@@ -56,7 +57,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-maven">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
 
@@ -66,18 +67,20 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           <div className="hidden lg:block space-y-8">
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                  <Ship className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-slate-900">{APP_CONFIG.name}</h1>
-                  <p className="text-slate-600">{APP_CONFIG.description}</p>
-                </div>
+                <Image
+                  src="/pelagos-core-logo.svg"
+                  alt="Pelagos Core"
+                  width={200}
+                  height={40}
+                  className="h-10 w-auto"
+                />
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-slate-900">Advanced Maritime Environmental Assessment</h2>
-                <p className="text-slate-600 text-lg leading-relaxed">
+                <h2 className="text-xl font-semibold text-slate-900 font-maven">
+                  Advanced Maritime Environmental Assessment
+                </h2>
+                <p className="text-slate-600 text-lg leading-relaxed font-maven">
                   Streamline your GWP calculations with AI-powered material recognition, automated PCR categorization,
                   and industry-standard benchmarking.
                 </p>
@@ -91,8 +94,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   <Zap className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">Automated Processing</h3>
-                  <p className="text-sm text-slate-600">AI-powered material recognition from documentation</p>
+                  <h3 className="font-semibold text-slate-900 font-maven">Automated Processing</h3>
+                  <p className="text-sm text-slate-600 font-maven">
+                    AI-powered material recognition from documentation
+                  </p>
                 </div>
               </div>
 
@@ -101,8 +106,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   <Shield className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">PCR Compliance</h3>
-                  <p className="text-sm text-slate-600">Automatic categorization per maritime standards</p>
+                  <h3 className="font-semibold text-slate-900 font-maven">PCR Compliance</h3>
+                  <p className="text-sm text-slate-600 font-maven">Automatic categorization per maritime standards</p>
                 </div>
               </div>
 
@@ -111,8 +116,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   <TrendingUp className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">Industry Benchmarks</h3>
-                  <p className="text-sm text-slate-600">Compare against maritime industry standards</p>
+                  <h3 className="font-semibold text-slate-900 font-maven">Industry Benchmarks</h3>
+                  <p className="text-sm text-slate-600 font-maven">Compare against maritime industry standards</p>
                 </div>
               </div>
             </div>
@@ -122,11 +127,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           <div className="w-full max-w-md mx-auto lg:mx-0">
             <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <LogIn className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl font-bold text-slate-900">Welcome Back</CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardTitle className="text-2xl font-bold text-slate-900 font-maven">Welcome Back</CardTitle>
+                <CardDescription className="text-slate-600 font-maven">
                   Sign in to access your GWP assessment dashboard
                 </CardDescription>
               </CardHeader>
@@ -134,7 +136,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <CardContent className="space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-700 font-medium">
+                    <Label htmlFor="email" className="text-slate-700 font-medium font-maven">
                       Email Address
                     </Label>
                     <Input
@@ -143,13 +145,13 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                       placeholder="Enter your email"
                       value={credentials.email}
                       onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                      className="h-11"
+                      className="h-11 font-maven"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-slate-700 font-medium">
+                    <Label htmlFor="password" className="text-slate-700 font-medium font-maven">
                       Password
                     </Label>
                     <div className="relative">
@@ -159,7 +161,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         placeholder="Enter your password"
                         value={credentials.password}
                         onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                        className="h-11 pr-10"
+                        className="h-11 pr-10 font-maven"
                         required
                       />
                       <Button
@@ -180,24 +182,24 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
                   {error && (
                     <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
+                      <AlertDescription className="font-maven">{error}</AlertDescription>
                     </Alert>
                   )}
 
                   <Button
                     type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-maven font-medium"
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <div className="flex items-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Signing in...
+                        <span className="font-maven">Signing in...</span>
                       </div>
                     ) : (
                       <>
                         <LogIn className="h-4 w-4 mr-2" />
-                        Sign In
+                        <span className="font-maven">Sign In</span>
                       </>
                     )}
                   </Button>
@@ -205,7 +207,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
                 {/* Demo Credentials */}
                 <div className="pt-6 border-t border-slate-200">
-                  <p className="text-sm font-medium text-slate-700 mb-4 text-center">Demo Access</p>
+                  <p className="text-sm font-medium text-slate-700 mb-4 text-center font-maven">Demo Access</p>
                   <div className="space-y-3">
                     <Button
                       variant="outline"
@@ -218,12 +220,12 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-900">Administrator</span>
-                            <Badge variant="default" className="text-xs">
+                            <span className="font-medium text-slate-900 font-maven">Administrator</span>
+                            <Badge variant="default" className="text-xs font-maven">
                               Full Access
                             </Badge>
                           </div>
-                          <div className="text-sm text-slate-500">admin@yacht-gwp.com</div>
+                          <div className="text-sm text-slate-500 font-maven">admin@yacht-gwp.com</div>
                         </div>
                       </div>
                     </Button>
@@ -239,20 +241,21 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-900">Standard User</span>
-                            <Badge variant="secondary" className="text-xs">
+                            <span className="font-medium text-slate-900 font-maven">Standard User</span>
+                            <Badge variant="secondary" className="text-xs font-maven">
                               Calculator
                             </Badge>
                           </div>
-                          <div className="text-sm text-slate-500">user@yacht-gwp.com</div>
+                          <div className="text-sm text-slate-500 font-maven">user@yacht-gwp.com</div>
                         </div>
                       </div>
                     </Button>
                   </div>
 
                   <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-600 text-center">
-                      Demo password: <code className="bg-slate-200 px-1 rounded text-slate-800">password123</code>
+                    <p className="text-xs text-slate-600 text-center font-maven">
+                      Demo password:{" "}
+                      <code className="bg-slate-200 px-1 rounded text-slate-800 font-maven">password123</code>
                     </p>
                   </div>
                 </div>
@@ -260,10 +263,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </Card>
 
             <div className="mt-6 text-center text-sm text-slate-500">
-              <p>
+              <p className="font-maven">
                 {APP_CONFIG.name} v{APP_CONFIG.version}
               </p>
-              <p>Maritime Environmental Assessment Platform</p>
+              <p className="font-maven">Maritime Environmental Assessment Platform</p>
             </div>
           </div>
         </div>
