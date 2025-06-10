@@ -255,7 +255,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
             <Card>
               <CardContent className="p-6 text-center">
                 <TrendingUp className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Total GWP</p>
+                <p className="text-sm font-semibold text-black-600 mb-1">Total GWP</p>
                 <p className="text-3xl font-bold text-red-600">{formatNumber(gwpResults.totalGWP / 1000)}</p>
                 <p className="text-xs text-gray-500">t CO₂ equivalent</p>
               </CardContent>
@@ -264,7 +264,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
             <Card>
               <CardContent className="p-6 text-center">
                 <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">GWP per Tonne</p>
+                <p className="text-sm font-semibold text-black-600 mb-1">GWP per Tonne</p>
                 <p className="text-3xl font-bold text-blue-600">{formatNumber(gwpResults.gwpPerTonne / 1000)}</p>
                 <p className="text-xs text-gray-500">t CO₂eq per tonne</p>
               </CardContent>
@@ -273,7 +273,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
             <Card>
               <CardContent className="p-6 text-center">
                 <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Macro-Groups</p>
+                <p className="text-sm font-semibold text-black-600 mb-1">Macro-Groups</p>
                 <p className="text-3xl font-bold text-green-600">{macroGroupAnalysis.length}</p>
                 <p className="text-xs text-gray-500">PCR categories</p>
               </CardContent>
@@ -286,7 +286,7 @@ export default function ResultsDisplay({ gwpResults, onReset }: ResultsDisplayPr
                 >
                   <BenchmarkIcon className={`h-4 w-4 text-${benchmark.color}-600`} />
                 </div>
-                <p className="text-sm text-gray-600 mb-1">Performance</p>
+                <p className="text-sm font-semibold text-black-600 mb-1">Performance</p>
                 <p className={`text-2xl font-bold text-${benchmark.color}-600`}>
                   {Math.round((gwpResults.benchmarks.industry_average / gwpResults.totalGWP) * 100)}%
                 </p>

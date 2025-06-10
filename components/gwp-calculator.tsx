@@ -180,7 +180,7 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
                 <Card>
                   <CardContent className="p-4 text-center">
                     <TrendingUp className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Total GWP</p>
+                    <p className="text-sm font-semibold text-black-600 mb-1">Total GWP</p>
                     <p className="text-2xl font-bold text-red-600">
                       {formatNumber(gwpResults.totalGWP / 1000)} t CO₂eq
                     </p>
@@ -190,7 +190,7 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
                 <Card>
                   <CardContent className="p-4 text-center">
                     <Calculator className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">GWP per Tonne</p>
+                    <p className="text-sm font-semibold text-black-600 mb-1">GWP per Tonne</p>
                     <p className="text-2xl font-bold text-blue-600">
                       {formatNumber(gwpResults.gwpPerTonne / 1000)} t CO₂eq/t
                     </p>
@@ -210,7 +210,7 @@ export default function GWPCalculator({ processedData, onGWPCalculated }: GWPCal
                     >
                       <TrendingUp className="h-4 w-4" />
                     </div>
-                    <p className="text-sm text-gray-600">Benchmark</p>
+                    <p className="text-sm font-semibold text-black-600 mb-1">Benchmark</p>
                     <p
                       className={`text-lg font-bold ${
                         gwpResults.totalGWP < gwpResults.benchmarks.best_practice
