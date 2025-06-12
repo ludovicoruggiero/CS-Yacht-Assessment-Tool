@@ -34,6 +34,3 @@ export function convertFromKg(quantityInKg: number, targetUnit: WeightUnit): num
   }
 }
 
-export function formatWeight(weight: number, unit: WeightUnit = "kg", decimals = 1): string {
-  return `${weight.toFixed(decimals)} ${unit}`
-}
