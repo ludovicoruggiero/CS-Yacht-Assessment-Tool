@@ -18,6 +18,7 @@ import { MaterialStats } from "./parsing-validation/material-stats"
 import { CategoryCard } from "./parsing-validation/category-card"
 import { UncategorizedCard } from "./parsing-validation/uncategorized-card"
 import { AddMaterialDialog } from "./parsing-validation/add-material-dialog"
+import { MaterialsList } from "./parsing-validation/materials-list"
 
 interface ValidationMaterial extends ParsedMaterial {
   isValidated: boolean
@@ -375,34 +376,22 @@ export default function ParsingValidation({ parsedDocuments, onValidationComplet
             </Select>
           </div>
 
-          {/* Materiali organizzati per macrogruppo */}
-          <div className="space-y-4">
-            {Object.entries(categories).map(([categoryId, categoryData]) => (
-              <CategoryCard
-                key={categoryId}
-                categoryId={categoryId}
-                categoryData={categoryData}
-                isExpanded={expandedCategories.has(categoryId)}
-                validationMaterials={validationMaterials}
-                availableMaterials={availableMaterials}
-                isLoadingMaterials={isLoadingMaterials}
-                onToggleCategory={toggleCategory}
-                onMaterialSelection={handleMaterialSelection}
-                onQuantityChange={handleQuantityChange}
-                onValidationToggle={handleValidationToggle}
-                onRemoveMaterial={handleRemoveMaterial}
-                onAddMaterial={handleAddMaterial}
-              />
-            ))}
-
-            {/* Materiali non categorizzati */}
-            <UncategorizedCard
-              uncategorized={uncategorized}
-              allCategories={allCategories}
-              validationMaterials={validationMaterials}
-              onCategorySelection={handleCategorySelection}
-            />
-          </div>
+          <MaterialsList
+            categories={categories}
+            uncategorized={uncategorized}
+            allCategories={allCategories}
+            expandedCategories={expandedCategories}
+            validationMaterials={validationMaterials}
+            availableMaterials={availableMaterials}
+            isLoadingMaterials={isLoadingMaterials}
+            onToggleCategory={toggleCategory}
+            onMaterialSelection={handleMaterialSelection}
+            onQuantityChange={handleQuantityChange}
+            onValidationToggle={handleValidationToggle}
+            onRemoveMaterial={handleRemoveMaterial}
+            onAddMaterial={handleAddMaterial}
+            onCategorySelection={handleCategorySelection}
+          />
 
           {/* Pulsante di completamento */}
           <div className="flex justify-between items-center mt-6">
