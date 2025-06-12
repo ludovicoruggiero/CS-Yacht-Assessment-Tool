@@ -11,15 +11,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Edit, Trash2, Search, Download, Upload, Save, CheckCircle, AlertTriangle } from "lucide-react"
@@ -27,6 +18,10 @@ import { MaterialsDatabase, type Material } from "@/lib/materials-database-supab
 import { validateMaterial, parseAliases, formatAliases } from "@/lib/utils/material-utils"
 import { MATERIAL_CATEGORIES } from "@/lib/constants"
 import { notificationService } from "@/lib/services/notification-service"
+
+import { AddMaterialDialog } from "./materials-manager/add-material-dialog"
+import { EditMaterialDialog } from "./materials-manager/edit-material-dialog"
+import { StatsView } from "./materials-manager/stats-view"
 
 export default function MaterialsManager() {
   const [materialsDb] = useState(() => new MaterialsDatabase())
@@ -320,121 +315,13 @@ export default function MaterialsManager() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Material
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Add New Material</DialogTitle>
-                      <DialogDescription>
-                        Enter information for the new material to add to the database
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="name">Material Name *</Label>
-                          <Input
-                            id="name"
-                            value={newMaterial.name}
-                            onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                            placeholder="e.g. Stainless steel"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="category">Category *</Label>
-                          <Select
-                            value={newMaterial.category}
-                            onValueChange={(value) => setNewMaterial({ ...newMaterial, category: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MATERIAL_CATEGORIES.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="aliases">Aliases (comma separated)</Label>
-                        <Input
-                          id="aliases"
-                          value={formatAliases(newMaterial.aliases || [])}
-                          onChange={(e) => setNewMaterial({ ...newMaterial, aliases: parseAliases(e.target.value) })}
-                          placeholder="e.g. inox, stainless steel, aisi 316"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="gwpFactor">GWP Factor (kg CO₂eq/kg) *</Label>
-                          <Input
-                            id="gwpFactor"
-                            type="number"
-                            step="0.1"
-                            value={newMaterial.gwpFactor}
-                            onChange={(e) =>
-                              setNewMaterial({ ...newMaterial, gwpFactor: Number.parseFloat(e.target.value) })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="unit">Unit</Label>
-                          <Select
-                            value={newMaterial.unit}
-                            onValueChange={(value) => setNewMaterial({ ...newMaterial, unit: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="kg">kg</SelectItem>
-                              <SelectItem value="m³">m³</SelectItem>
-                              <SelectItem value="m²">m²</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="density">Density (kg/m³)</Label>
-                          <Input
-                            id="density"
-                            type="number"
-                            value={newMaterial.density}
-                            onChange={(e) =>
-                              setNewMaterial({ ...newMaterial, density: Number.parseFloat(e.target.value) })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={newMaterial.description}
-                          onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
-                          placeholder="Material description and characteristics"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleAddMaterial}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Material
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <AddMaterialDialog
+                  isOpen={isAddDialogOpen}
+                  onOpenChange={setIsAddDialogOpen}
+                  newMaterial={newMaterial}
+                  onMaterialChange={setNewMaterial}
+                  onSave={handleAddMaterial}
+                />
               </div>
 
               {/* Materials table */}
@@ -532,178 +419,20 @@ export default function MaterialsManager() {
               </div>
             </TabsContent>
 
-            <TabsContent value="stats" className="space-y-4">
-              <div className="grid md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-blue-600">{materials.length}</p>
-                    <p className="text-sm text-gray-600">Total Materials</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">{categories.length}</p>
-                    <p className="text-sm text-gray-600">Categories</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-purple-600">
-                      {materials.reduce((sum, m) => sum + m.aliases.length, 0)}
-                    </p>
-                    <p className="text-sm text-gray-600">Total Aliases</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-orange-600">
-                      {materials.length > 0
-                        ? (materials.reduce((sum, m) => sum + m.gwpFactor, 0) / materials.length).toFixed(1)
-                        : 0}
-                    </p>
-                    <p className="text-sm text-gray-600">Average GWP</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribution by Category</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {categories.map((category) => {
-                      const count = materials.filter((m) => m.category === category).length
-                      const percentage = materials.length > 0 ? (count / materials.length) * 100 : 0
-                      return (
-                        <div key={category}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium">{category}</span>
-                            <span className="text-sm text-gray-600">
-                              {count} ({percentage.toFixed(1)}%)
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="stats">
+              <StatsView materials={materials} />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
 
-      {/* Edit dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Material</DialogTitle>
-            <DialogDescription>Edit the selected material information</DialogDescription>
-          </DialogHeader>
-          {editingMaterial && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-name">Material Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingMaterial.name}
-                    onChange={(e) => setEditingMaterial({ ...editingMaterial, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-category">Category</Label>
-                  <Select
-                    value={editingMaterial.category}
-                    onValueChange={(value) => setEditingMaterial({ ...editingMaterial, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="edit-aliases">Aliases</Label>
-                <Input
-                  id="edit-aliases"
-                  value={formatAliases(editingMaterial.aliases)}
-                  onChange={(e) => setEditingMaterial({ ...editingMaterial, aliases: parseAliases(e.target.value) })}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="edit-gwpFactor">GWP Factor</Label>
-                  <Input
-                    id="edit-gwpFactor"
-                    type="number"
-                    step="0.1"
-                    value={editingMaterial.gwpFactor}
-                    onChange={(e) =>
-                      setEditingMaterial({ ...editingMaterial, gwpFactor: Number.parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-unit">Unit</Label>
-                  <Select
-                    value={editingMaterial.unit}
-                    onValueChange={(value) => setEditingMaterial({ ...editingMaterial, unit: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kg">kg</SelectItem>
-                      <SelectItem value="m³">m³</SelectItem>
-                      <SelectItem value="m²">m²</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="edit-density">Density</Label>
-                  <Input
-                    id="edit-density"
-                    type="number"
-                    value={editingMaterial.density || ""}
-                    onChange={(e) =>
-                      setEditingMaterial({ ...editingMaterial, density: Number.parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editingMaterial.description || ""}
-                  onChange={(e) => setEditingMaterial({ ...editingMaterial, description: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditMaterial}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditMaterialDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        editingMaterial={editingMaterial}
+        onMaterialChange={(mat) => setEditingMaterial(mat)}
+        onSave={handleEditMaterial}
+      />
     </div>
   )
 }
