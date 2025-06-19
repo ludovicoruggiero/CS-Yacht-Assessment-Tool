@@ -33,4 +33,3 @@ export function convertFromKg(quantityInKg: number, targetUnit: WeightUnit): num
       return quantityInKg / 1000
   }
 }
-
