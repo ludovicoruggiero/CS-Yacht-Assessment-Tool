@@ -8,6 +8,11 @@
 ## Overview
 
 This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
+
+## EcoDesign Guidelines
+
+The `EcoDesign` section is available from the sidebar and allows users to browse sustainability guidelines.
+Administrators can add new guidelines through the same interface. The Supabase database schema for this feature is stored in `sql/ecodesign_schema.sql`.
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
 
 ## Deployment
