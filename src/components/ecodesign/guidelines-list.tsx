@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Settings } from "lucide-react";
 import {
   guidelinesService,
   LIFE_CYCLE_PHASES,
@@ -19,6 +20,11 @@ import {
   type CreateGuidelineData,
   type TargetGroup,
   type ImplementationGroup,
+  type HullType,
+  type PropulsionType,
+  type YachtSizeClass,
+  type OperationalProfile,
+  type TechnologyReadinessLevel,
 } from "@/lib/services/guidelines-service";
 import { authService } from "@/lib/auth";
 
@@ -34,6 +40,13 @@ export default function GuidelinesList() {
   const [implementationGroups, setImplementationGroups] = useState<
     ImplementationGroup[]
   >([]);
+  const [hullTypes, setHullTypes] = useState<HullType[]>([]);
+  const [propulsionTypes, setPropulsionTypes] = useState<PropulsionType[]>([]);
+  const [sizeClasses, setSizeClasses] = useState<YachtSizeClass[]>([]);
+  const [operationalProfiles, setOperationalProfiles] = useState<
+    OperationalProfile[]
+  >([]);
+  const [trls, setTrls] = useState<TechnologyReadinessLevel[]>([]);
 
   const [phaseFilter, setPhaseFilter] = useState("");
   const [targetGroupFilter, setTargetGroupFilter] = useState("");
@@ -49,11 +62,17 @@ export default function GuidelinesList() {
   });
 
   const isAdmin = authService.isAdmin();
+  const [showAdmin, setShowAdmin] = useState(false);
 
   useEffect(() => {
     fetchGuidelines();
     fetchTargetGroups();
     fetchImplementationGroups();
+    fetchHullTypes();
+    fetchPropulsionTypes();
+    fetchSizeClasses();
+    fetchOperationalProfiles();
+    fetchTrls();
   }, []);
 
   const fetchGuidelines = async () => {
@@ -80,6 +99,51 @@ export default function GuidelinesList() {
     try {
       const data = await guidelinesService.getImplementationGroups();
       setImplementationGroups(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchHullTypes = async () => {
+    try {
+      const data = await guidelinesService.getHullTypes();
+      setHullTypes(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchPropulsionTypes = async () => {
+    try {
+      const data = await guidelinesService.getPropulsionTypes();
+      setPropulsionTypes(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchSizeClasses = async () => {
+    try {
+      const data = await guidelinesService.getYachtSizeClasses();
+      setSizeClasses(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchOperationalProfiles = async () => {
+    try {
+      const data = await guidelinesService.getOperationalProfiles();
+      setOperationalProfiles(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchTrls = async () => {
+    try {
+      const data = await guidelinesService.getTechnologyReadinessLevels();
+      setTrls(data);
     } catch (err) {
       console.error(err);
     }
@@ -117,8 +181,17 @@ export default function GuidelinesList() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle>EcoDesign Guidelines</CardTitle>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAdmin(!showAdmin)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
@@ -168,7 +241,7 @@ export default function GuidelinesList() {
         </CardContent>
       </Card>
 
-      {isAdmin && (
+      {isAdmin && showAdmin && (
         <Card>
           <CardHeader>
             <CardTitle>Add Guideline</CardTitle>
@@ -297,7 +370,7 @@ export default function GuidelinesList() {
         </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && showAdmin && (
         <Card>
           <CardHeader>
             <CardTitle>Manage Lookups</CardTitle>
@@ -358,6 +431,153 @@ export default function GuidelinesList() {
                 }}
               >
                 Save Implementation Group
+              </Button>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Add Hull Type</h4>
+              <Input placeholder="Code" id="ht-code" className="mb-2" />
+              <Input placeholder="Label" id="ht-label" className="mb-2" />
+              <Button
+                onClick={async () => {
+                  const code = (
+                    document.getElementById("ht-code") as HTMLInputElement
+                  ).value;
+                  const label = (
+                    document.getElementById("ht-label") as HTMLInputElement
+                  ).value;
+                  if (code && label) {
+                    await guidelinesService.createHullType({ code, label });
+                    fetchHullTypes();
+                    (
+                      document.getElementById("ht-code") as HTMLInputElement
+                    ).value = "";
+                    (
+                      document.getElementById("ht-label") as HTMLInputElement
+                    ).value = "";
+                  }
+                }}
+              >
+                Save Hull Type
+              </Button>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Add Propulsion Type</h4>
+              <Input placeholder="Code" id="pt-code" className="mb-2" />
+              <Input placeholder="Label" id="pt-label" className="mb-2" />
+              <Button
+                onClick={async () => {
+                  const code = (
+                    document.getElementById("pt-code") as HTMLInputElement
+                  ).value;
+                  const label = (
+                    document.getElementById("pt-label") as HTMLInputElement
+                  ).value;
+                  if (code && label) {
+                    await guidelinesService.createPropulsionType({
+                      code,
+                      label,
+                    });
+                    fetchPropulsionTypes();
+                    (
+                      document.getElementById("pt-code") as HTMLInputElement
+                    ).value = "";
+                    (
+                      document.getElementById("pt-label") as HTMLInputElement
+                    ).value = "";
+                  }
+                }}
+              >
+                Save Propulsion Type
+              </Button>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Add Size Class</h4>
+              <Input placeholder="Code" id="sc-code" className="mb-2" />
+              <Input placeholder="Label" id="sc-label" className="mb-2" />
+              <Button
+                onClick={async () => {
+                  const code = (
+                    document.getElementById("sc-code") as HTMLInputElement
+                  ).value;
+                  const label = (
+                    document.getElementById("sc-label") as HTMLInputElement
+                  ).value;
+                  if (code && label) {
+                    await guidelinesService.createYachtSizeClass({
+                      code,
+                      label,
+                    });
+                    fetchSizeClasses();
+                    (
+                      document.getElementById("sc-code") as HTMLInputElement
+                    ).value = "";
+                    (
+                      document.getElementById("sc-label") as HTMLInputElement
+                    ).value = "";
+                  }
+                }}
+              >
+                Save Size Class
+              </Button>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Add Operational Profile</h4>
+              <Input placeholder="Code" id="op-code" className="mb-2" />
+              <Input placeholder="Label" id="op-label" className="mb-2" />
+              <Button
+                onClick={async () => {
+                  const code = (
+                    document.getElementById("op-code") as HTMLInputElement
+                  ).value;
+                  const label = (
+                    document.getElementById("op-label") as HTMLInputElement
+                  ).value;
+                  if (code && label) {
+                    await guidelinesService.createOperationalProfile({
+                      code,
+                      label,
+                    });
+                    fetchOperationalProfiles();
+                    (
+                      document.getElementById("op-code") as HTMLInputElement
+                    ).value = "";
+                    (
+                      document.getElementById("op-label") as HTMLInputElement
+                    ).value = "";
+                  }
+                }}
+              >
+                Save Operational Profile
+              </Button>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Add TRL</h4>
+              <Input placeholder="Code" id="trl-code" className="mb-2" />
+              <Input placeholder="Label" id="trl-label" className="mb-2" />
+              <Button
+                onClick={async () => {
+                  const code = (
+                    document.getElementById("trl-code") as HTMLInputElement
+                  ).value;
+                  const label = (
+                    document.getElementById("trl-label") as HTMLInputElement
+                  ).value;
+                  if (code && label) {
+                    await guidelinesService.createTechnologyReadinessLevel({
+                      code,
+                      label,
+                    });
+                    fetchTrls();
+                    (
+                      document.getElementById("trl-code") as HTMLInputElement
+                    ).value = "";
+                    (
+                      document.getElementById("trl-label") as HTMLInputElement
+                    ).value = "";
+                  }
+                }}
+              >
+                Save TRL
               </Button>
             </div>
           </CardContent>

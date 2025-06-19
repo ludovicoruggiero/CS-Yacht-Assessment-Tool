@@ -13,7 +13,10 @@ This repository will stay in sync with your deployed chats on [v0.dev](https://v
 
 The `EcoDesign` section is available from the sidebar and lets users browse sustainability guidelines.
 Normal users can filter guidelines by life-cycle phase and target group.
-Administrators can add new guidelines and manage lookup tables (target groups and implementation groups).
+Admins see the same list with a gear icon to open editing tools.
+From that panel they can add guidelines and manage all lookup tables
+(target groups, implementation groups, hull types, propulsion types,
+yacht size classes, operational profiles and TRLs).
 The Supabase database schema for this feature is stored in `sql/ecodesign_schema.sql`.
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
 

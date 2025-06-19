@@ -32,6 +32,36 @@ export interface ImplementationGroup {
   label: string;
 }
 
+export interface HullType {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface PropulsionType {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface YachtSizeClass {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface OperationalProfile {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface TechnologyReadinessLevel {
+  id: string;
+  code: string;
+  label: string;
+}
+
 export const LIFE_CYCLE_PHASES = [
   "Upstream",
   "Design",
@@ -78,25 +108,21 @@ export class GuidelinesService {
     const inserted = data;
 
     if (target_group_ids.length) {
-      await supabase
-        .from("lcd_guidelines.guideline_target_groups")
-        .insert(
-          target_group_ids.map((id) => ({
-            guideline_id: inserted.id,
-            target_group_id: id,
-          })),
-        );
+      await supabase.from("lcd_guidelines.guideline_target_groups").insert(
+        target_group_ids.map((id) => ({
+          guideline_id: inserted.id,
+          target_group_id: id,
+        })),
+      );
     }
 
     if (life_cycle_phases.length) {
-      await supabase
-        .from("lcd_guidelines.guideline_life_cycle_phases")
-        .insert(
-          life_cycle_phases.map((phase) => ({
-            guideline_id: inserted.id,
-            phase,
-          })),
-        );
+      await supabase.from("lcd_guidelines.guideline_life_cycle_phases").insert(
+        life_cycle_phases.map((phase) => ({
+          guideline_id: inserted.id,
+          phase,
+        })),
+      );
     }
 
     return inserted;
@@ -163,6 +189,136 @@ export class GuidelinesService {
       );
     }
 
+    return res;
+  }
+
+  async getHullTypes(): Promise<HullType[]> {
+    const { data, error } = await supabase
+      .from("lcd_guidelines.hull_types")
+      .select("*")
+      .order("label", { ascending: true });
+    if (error) {
+      throw new Error(`Failed to fetch hull types: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async createHullType(data: {
+    code: string;
+    label: string;
+  }): Promise<HullType> {
+    const { data: res, error } = await supabase
+      .from("lcd_guidelines.hull_types")
+      .insert(data)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create hull type: ${error.message}`);
+    }
+    return res;
+  }
+
+  async getPropulsionTypes(): Promise<PropulsionType[]> {
+    const { data, error } = await supabase
+      .from("lcd_guidelines.propulsion_types")
+      .select("*")
+      .order("label", { ascending: true });
+    if (error) {
+      throw new Error(`Failed to fetch propulsion types: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async createPropulsionType(data: {
+    code: string;
+    label: string;
+  }): Promise<PropulsionType> {
+    const { data: res, error } = await supabase
+      .from("lcd_guidelines.propulsion_types")
+      .insert(data)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create propulsion type: ${error.message}`);
+    }
+    return res;
+  }
+
+  async getYachtSizeClasses(): Promise<YachtSizeClass[]> {
+    const { data, error } = await supabase
+      .from("lcd_guidelines.yacht_size_classes")
+      .select("*")
+      .order("label", { ascending: true });
+    if (error) {
+      throw new Error(`Failed to fetch size classes: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async createYachtSizeClass(data: {
+    code: string;
+    label: string;
+  }): Promise<YachtSizeClass> {
+    const { data: res, error } = await supabase
+      .from("lcd_guidelines.yacht_size_classes")
+      .insert(data)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create size class: ${error.message}`);
+    }
+    return res;
+  }
+
+  async getOperationalProfiles(): Promise<OperationalProfile[]> {
+    const { data, error } = await supabase
+      .from("lcd_guidelines.operational_profiles")
+      .select("*")
+      .order("label", { ascending: true });
+    if (error) {
+      throw new Error(`Failed to fetch operational profiles: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async createOperationalProfile(data: {
+    code: string;
+    label: string;
+  }): Promise<OperationalProfile> {
+    const { data: res, error } = await supabase
+      .from("lcd_guidelines.operational_profiles")
+      .insert(data)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create operational profile: ${error.message}`);
+    }
+    return res;
+  }
+
+  async getTechnologyReadinessLevels(): Promise<TechnologyReadinessLevel[]> {
+    const { data, error } = await supabase
+      .from("lcd_guidelines.technology_readiness_levels")
+      .select("*")
+      .order("label", { ascending: true });
+    if (error) {
+      throw new Error(`Failed to fetch TRLs: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async createTechnologyReadinessLevel(data: {
+    code: string;
+    label: string;
+  }): Promise<TechnologyReadinessLevel> {
+    const { data: res, error } = await supabase
+      .from("lcd_guidelines.technology_readiness_levels")
+      .insert(data)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create TRL: ${error.message}`);
+    }
     return res;
   }
 }
