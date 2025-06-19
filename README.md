@@ -1,6 +1,6 @@
 # CS Yacht Assessment Tool
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+_Automatically synced with your [v0.dev](https://v0.dev) deployments_
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ludoludvigs-projects/v0-creare-tool-online)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/Qq4e542IC1f)
@@ -11,8 +11,10 @@ This repository will stay in sync with your deployed chats on [v0.dev](https://v
 
 ## EcoDesign Guidelines
 
-The `EcoDesign` section is available from the sidebar and allows users to browse sustainability guidelines.
-Administrators can add new guidelines through the same interface. The Supabase database schema for this feature is stored in `sql/ecodesign_schema.sql`.
+The `EcoDesign` section is available from the sidebar and lets users browse sustainability guidelines.
+Normal users can filter guidelines by life-cycle phase and target group.
+Administrators can add new guidelines and manage lookup tables (target groups and implementation groups).
+The Supabase database schema for this feature is stored in `sql/ecodesign_schema.sql`.
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
 
 ## Deployment
