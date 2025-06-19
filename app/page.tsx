@@ -1,7 +1,8 @@
 "use client"
 
-import { ThemeProvider } from "../src/components/theme-provider"
+// Import the actual main application component
+import LightshipweightGWPTool from "../src/app/page"
 
-export default function SyntheticV0PageForDeployment() {
-  return <ThemeProvider />
+export default function Page() {
+  return <LightshipweightGWPTool />
 }
