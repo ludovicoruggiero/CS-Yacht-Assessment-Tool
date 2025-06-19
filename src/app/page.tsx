@@ -26,6 +26,7 @@ import {
   Package,
   Settings,
   LogOut,
+  Leaf,
 } from "lucide-react"
 import FileUploader from "@/components/file-uploader"
 import DocumentProcessor from "@/components/document-processor"
@@ -33,6 +34,7 @@ import ParsingValidation from "@/components/parsing-validation"
 import GWPCalculator from "@/components/gwp-calculator"
 import ResultsDisplay from "@/components/results-display"
 import MaterialsManager from "@/components/materials-manager"
+import GuidelinesList from "@/components/ecodesign/guidelines-list"
 import LoginForm from "@/components/login-form"
 import { authService } from "@/lib/auth"
 import { useAppState } from "@/lib/services/app-state"
@@ -168,6 +170,12 @@ export default function LightshipweightGWPTool() {
       description: "Manage your assessments",
       badge: currentProject ? "Active" : undefined,
     },
+    {
+      id: "ecodesign",
+      label: "EcoDesign",
+      icon: Leaf,
+      description: "Guidelines for sustainable design",
+    },
   ]
 
   // Add Materials DB only for admin
@@ -257,6 +265,7 @@ export default function LightshipweightGWPTool() {
                   {activeView === "dashboard" && "Dashboard"}
                   {activeView === "calculator" && "GWP Calculator"}
                   {activeView === "materials" && "Materials Database"}
+                  {activeView === "ecodesign" && "EcoDesign"}
                   {activeView === "projects" && "My Projects"}
                   {activeView === "create-project" && "Create Project"}
                 </h2>
@@ -264,6 +273,7 @@ export default function LightshipweightGWPTool() {
                   {activeView === "dashboard" && "Overview of your environmental analysis"}
                   {activeView === "calculator" && getCurrentStepInfo().description}
                   {activeView === "materials" && "Manage your materials library"}
+                  {activeView === "ecodesign" && "Explore sustainable guidelines"}
                   {activeView === "projects" && "Manage your projects"}
                   {activeView === "create-project" && "Create a new project"}
                 </p>
@@ -504,6 +514,7 @@ export default function LightshipweightGWPTool() {
           )}
 
           {activeView === "materials" && authService.hasAccess("admin") && <MaterialsManager />}
+          {activeView === "ecodesign" && <GuidelinesList />}
         </main>
       </div>
 
