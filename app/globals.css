@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -47,6 +37,8 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Add font-maven-pro variable */
+    --font-maven-pro: "Maven Pro", sans-serif;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -88,7 +80,19 @@ body {
   * {
     @apply border-border;
   }
+  html {
+    /* Apply font to html */
+    font-family: var(--font-maven-pro), system-ui, sans-serif;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-maven-pro), system-ui, sans-serif; /* Apply font to body */
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }

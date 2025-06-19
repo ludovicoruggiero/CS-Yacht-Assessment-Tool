@@ -1,14 +1,14 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Maven_Pro } from "next/font/google"
+// REMOVE: import { Maven_Pro } from 'next/font/google'
 import "./globals.css"
 import { APP_CONFIG } from "@/lib/constants"
 
-const mavenPro = Maven_Pro({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-maven-pro",
-})
+// REMOVE: const mavenPro = Maven_Pro({
+// REMOVE:   subsets: ["latin"],
+// REMOVE:   display: "swap",
+// REMOVE:   variable: "--font-maven-pro",
+// REMOVE: })
 
 export const metadata: Metadata = {
   title: APP_CONFIG.name,
@@ -22,8 +22,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={mavenPro.variable}>
-      <body className={mavenPro.className}>{children}</body>
+    <html lang="en">
+      {" "}
+      {/* REMOVE: className={mavenPro.variable} */}
+      <body>{children}</body> {/* REMOVE: className={mavenPro.className} */}
     </html>
   )
 }
