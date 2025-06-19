@@ -73,4 +73,3 @@ export function BreakdownChart({ data, formatNumber }: BreakdownChartProps) {
     </Card>
   )
 }
-

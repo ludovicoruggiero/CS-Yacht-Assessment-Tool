@@ -68,4 +68,3 @@ export function StatsView({ materials }: StatsViewProps) {
     </div>
   )
 }
-

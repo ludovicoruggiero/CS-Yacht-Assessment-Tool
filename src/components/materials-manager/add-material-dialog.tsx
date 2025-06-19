@@ -132,4 +132,3 @@ export function AddMaterialDialog({
     </Dialog>
   )
 }
-

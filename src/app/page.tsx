@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Sidebar } from "@/components/layout/sidebar"
 import {
   Upload,
@@ -13,9 +12,7 @@ import {
   Ship,
   CheckCircle,
   Shield,
-  RotateCcw,
   Menu,
-  X,
   Home,
   BarChart3,
   Database,
@@ -39,7 +36,7 @@ import { useAppState } from "@/lib/services/app-state"
 import ProjectCreator from "@/components/project-creator"
 import ProjectsList from "@/components/projects-list"
 import type { Project } from "@/lib/services/projects-service"
-import Image from "next/image"
+import EcodesignManager from "@/components/ecodesign-manager"
 
 export default function LightshipweightGWPTool() {
   const {
@@ -168,6 +165,12 @@ export default function LightshipweightGWPTool() {
       description: "Manage your assessments",
       badge: currentProject ? "Active" : undefined,
     },
+    {
+      id: "ecodesign",
+      label: "Ecodesign",
+      icon: Zap,
+      description: "LCD guidelines & strategies",
+    },
   ]
 
   // Add Materials DB only for admin
@@ -259,6 +262,7 @@ export default function LightshipweightGWPTool() {
                   {activeView === "materials" && "Materials Database"}
                   {activeView === "projects" && "My Projects"}
                   {activeView === "create-project" && "Create Project"}
+                  {activeView === "ecodesign" && "Ecodesign Guidelines"}
                 </h2>
                 <p className="text-sm text-slate-500">
                   {activeView === "dashboard" && "Overview of your environmental analysis"}
@@ -266,6 +270,7 @@ export default function LightshipweightGWPTool() {
                   {activeView === "materials" && "Manage your materials library"}
                   {activeView === "projects" && "Manage your projects"}
                   {activeView === "create-project" && "Create a new project"}
+                  {activeView === "ecodesign" && "Life Cycle Design guidelines and strategies"}
                 </p>
               </div>
             </div>
@@ -504,6 +509,7 @@ export default function LightshipweightGWPTool() {
           )}
 
           {activeView === "materials" && authService.hasAccess("admin") && <MaterialsManager />}
+          {activeView === "ecodesign" && <EcodesignManager />}
         </main>
       </div>
 

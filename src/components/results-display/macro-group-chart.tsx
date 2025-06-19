@@ -109,4 +109,3 @@ export function MacroGroupChart({ data, formatNumber, getColorForIndex, getTextC
     </Card>
   )
 }
-
